@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import {DataProcessingService} from '../../services/data-processsing/data-processing.service';
 
 @Component({
   selector: 'app-home-page',
@@ -7,5 +8,5 @@ import { Component } from '@angular/core';
   styleUrl: './home-page.component.css'
 })
 export class HomePageComponent {
-
+  constructor(dataProcessingService: DataProcessingService) {}
 }
