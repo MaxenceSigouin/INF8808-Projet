@@ -10,7 +10,7 @@ export class BarChartComponent implements OnInit {
   private data: any[] = [];
   private svg: any;
   // Define margins and dimensions for the chart
-  private margin = { top: 20, right: 20, bottom: 70, left: 50 };
+  private margin = { top: 40, right: 20, bottom: 70, left: 60 };
   private width = 800 - this.margin.left - this.margin.right;
   private height = 500 - this.margin.top - this.margin.bottom;
 
@@ -26,7 +26,7 @@ export class BarChartComponent implements OnInit {
       });
       this.data = data;
       
-      // Pre-process the data to add a decade property. For this example, we are grouping full decades.
+      // Pre-process the data to add a decade property.
       this.data = this.preprocessData(this.data);
       // Now aggregate the data: count the number of records per decade.
       this.data = this.countYAxis(this.data);
@@ -40,16 +40,20 @@ export class BarChartComponent implements OnInit {
 
   /**
    * Adds a 'decade' field to each record.
-   * Groups the years into full decades. For example: 1960-1969, 1970-1979, etc.
+   * Records with year >= 2020 and <= 2022 will be set to "2020-2022",
+   * while all others are grouped by full decades (e.g., "1960-1969").
    */
   private preprocessData(data: any[]): any[] {
     return data.map(d => {
       const year = +d['year'];
-      // Determine the starting year of the decade.
-      const decadeStart = Math.floor(year / 10) * 10;
-      const decadeEnd = decadeStart + 9;
-      // Create a new field 'decade'
-      d['decade'] = `${decadeStart}-${decadeEnd}`;
+      if (year >= 2020 && year <= 2022) {
+        d['decade'] = "2020-2022";
+      } else {
+        // Determine the starting year of the decade.
+        const decadeStart = Math.floor(year / 10) * 10;
+        const decadeEnd = decadeStart + 9;
+        d['decade'] = `${decadeStart}-${decadeEnd}`;
+      }
       return d;
     });
   }
@@ -57,14 +61,26 @@ export class BarChartComponent implements OnInit {
   /**
    * Aggregates the data by decade, counting the number of entries per decade.
    * Returns an array where each object has the fields:
-   * - decade: string (e.g. "1960-1969")
+   * - decade: string (e.g. "1960-1969" or "2020-2022")
    * - total: number (the count of points/entries for that decade)
+   *
+   * The resulting array is sorted in descending order based on the
+   * starting year of the decade.
    */
   private countYAxis(data: any[]): any[] {
     // Use d3.rollup to create a Map with decade as key and number of records as value.
     const aggregatedMap = d3.rollup(data, v => v.length, (d: any) => d.decade);
     // Convert the Map into an array of objects.
-    const aggregatedData = Array.from(aggregatedMap, ([decade, total]) => ({ decade, total }));
+    let aggregatedData = Array.from(aggregatedMap, ([decade, total]) => ({ decade, total }));
+
+    // Sort the decades in descending order.
+    aggregatedData.sort((a, b) => {
+      // Extract the starting year from the decade strings.
+      const startA = parseInt(a.decade.split('-')[0]);
+      const startB = parseInt(b.decade.split('-')[0]);
+      return startB - startA;
+    });
+
     return aggregatedData;
   }
 
@@ -112,5 +128,39 @@ export class BarChartComponent implements OnInit {
     // Add the Y axis.
     this.svg.append('g')
       .call(d3.axisLeft(y));
+
+    // Add titles and axis labels.
+    this.addLabels();
+  }
+
+  /**
+   * Adds a title to the chart and labels for the x and y axes.
+   */
+  private addLabels(): void {
+    // Add chart title.
+    this.svg.append('text')
+      .attr('x', this.width / 2)
+      .attr('y', -this.margin.top / 2)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '18px')
+      .style('font-weight', 'bold')
+      .text('Number of Points by Decade');
+
+    // Add X-axis label.
+    this.svg.append('text')
+      .attr('x', this.width / 2)
+      .attr('y', this.height + this.margin.bottom - 10)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '14px')
+      .text('Decade');
+
+    // Add Y-axis label.
+    this.svg.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -this.height / 2)
+      .attr('y', -this.margin.left + 15)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '14px')
+      .text('Number of Points');
   }
 }
