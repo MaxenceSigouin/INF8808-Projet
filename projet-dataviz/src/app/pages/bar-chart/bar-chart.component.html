@@ -1,1 +1,13 @@
-<figure id="barChart"></figure>
+<div class="button-group">
+    <button [class.selected]="selectedCategories['forward']" (click)="toggleCategory('forward')">
+      Forward (LW, C, RW)
+    </button>
+    <button [class.selected]="selectedCategories['defensemen']" (click)="toggleCategory('defensemen')">
+      Defensemen (D)
+    </button>
+    <button [class.selected]="selectedCategories['goalie']" (click)="toggleCategory('goalie')">
+      Goalie (G)
+    </button>
+  </div>
+  <figure id="barChart"></figure>
+  

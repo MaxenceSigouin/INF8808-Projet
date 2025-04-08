@@ -1,0 +1,16 @@
+.button-group {
+    margin-bottom: 1rem;
+  }
+  
+  .button-group button {
+    margin-right: 10px;
+    padding: 5px 15px;
+    cursor: pointer;
+  }
+  
+  .button-group button.selected {
+    background-color: #007bff;
+    color: white;
+    border: none;
+  }
+  

@@ -7,14 +7,30 @@ import * as d3 from 'd3';
   styleUrls: ['./bar-chart.component.css']
 })
 export class BarChartComponent implements OnInit {
-  private data: any[] = [];
+  private originalData: any[] = [];  // Keep full copy of the CSV data.
+  private data: any[] = [];          // Data that will be processed and used for the chart.
   private svg: any;
-  // Predefined list for stacking and ordering.
+  // Predefined list for stacking and ordering (colors are used for nationalities).
   private predefinedNationalities: string[] = ["CA", "US", "FI", "SE", "RU", "Others"];
+
   // Define margins and dimensions for the chart.
   private margin = { top: 40, right: 20, bottom: 70, left: 60 };
   private width = 800 - this.margin.left - this.margin.right;
   private height = 500 - this.margin.top - this.margin.bottom;
+
+  // Define position filter state (all selected by default).
+  selectedCategories: { [key: string]: boolean } = {
+    forward: true,      // forward includes LW, C, RW
+    defensemen: true,   // defensemen includes D
+    goalie: true        // goalie includes G
+  };
+
+  // Map each category to the actual positions.
+  positionMapping: { [key: string]: string[] } = {
+    forward: ['LW', 'C', 'RW'],
+    defensemen: ['D'],
+    goalie: ['G']
+  };
 
   constructor() {}
 
@@ -30,18 +46,54 @@ export class BarChartComponent implements OnInit {
         const allowed = new Set(["CA", "US", "FI", "SE", "RU"]);
         d['nationality'] = allowed.has(d['nationality']) ? d['nationality'] : "Others";
       });
-      this.data = data;
       
-      // Pre-process the data to add a decade property.
-      this.data = this.preprocessData(this.data);
-      // Now aggregate the data by decade and nationality.
-      this.data = this.countYAxis(this.data);
+      // Keep a copy of the original data.
+      this.originalData = data;
       
+      // Create the SVG element once.
       this.createSvg();
-      this.drawBars();
+      // Filter the data with default selected positions and update the chart.
+      this.updateFilteredData();
     }).catch(error => {
       console.error('Error loading CSV:', error);
     });
+  }
+
+  /**
+   * This method applies the current position filter, processes the filtered data,
+   * aggregates it, and redraws the chart.
+   */
+  updateFilteredData(): void {
+    // Collect positions to include based on the selected categories.
+    let selectedPositions: string[] = [];
+    for (let cat in this.selectedCategories) {
+      if (this.selectedCategories[cat]) {
+        selectedPositions.push(...this.positionMapping[cat]);
+      }
+    }
+    
+    // Filter the original data so only rows with the desired positions remain.
+    let filteredData = this.originalData.filter(d => selectedPositions.includes(d['position']));
+    
+    // Process the filtered data
+    const processedData = this.preprocessData(filteredData);
+    // Aggregate the processed data by decade and nationality.
+    this.data = this.countYAxis(processedData);
+    
+    // Redraw the chart: clear the existing SVG content and redraw.
+    this.svg.selectAll("*").remove();
+    this.drawBars();
+  }
+
+  /**
+   * Toggle a given category (forward, defensemen, goalie) when a user clicks a button.
+   * This will update the filtered data and redraw the chart.
+   *
+   * @param cat - The category to toggle.
+   */
+  toggleCategory(cat: string): void {
+    this.selectedCategories[cat] = !this.selectedCategories[cat];
+    this.updateFilteredData();
   }
 
   /**
@@ -106,8 +158,10 @@ export class BarChartComponent implements OnInit {
     return aggregatedData;
   }
 
+  /**
+   * Creates the SVG container inside the element with id "barChart".
+   */
   private createSvg(): void {
-    // Create the SVG container inside the element with id "barChart".
     this.svg = d3.select('figure#barChart')
       .append('svg')
       .attr('width', this.width + this.margin.left + this.margin.right)
@@ -132,7 +186,7 @@ export class BarChartComponent implements OnInit {
       .domain([0, maxTotal])
       .range([this.height, 0]);
 
-    // Predefined color mapping.
+    // Predefined color mapping for nationalities.
     const colorMapping: Record<string, string> = {
       "CA": "red",
       "US": "darkblue",
