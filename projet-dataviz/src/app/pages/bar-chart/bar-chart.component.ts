@@ -9,8 +9,8 @@ import * as d3 from 'd3';
 export class BarChartComponent implements OnInit {
   private data: any[] = [];
   private svg: any;
-  // Save the union of nationalities for stacking.
-  private nationalities: string[] = [];
+  // Predefined list for stacking and ordering.
+  private predefinedNationalities: string[] = ["CA", "US", "FI", "SE", "RU", "Others"];
   // Define margins and dimensions for the chart.
   private margin = { top: 40, right: 20, bottom: 70, left: 60 };
   private width = 800 - this.margin.left - this.margin.right;
@@ -25,6 +25,10 @@ export class BarChartComponent implements OnInit {
       data.forEach((d: any) => {
         d['overall_pick'] = +d['overall_pick'];  // Convert overall_pick to number
         d['year'] = +d['year']; // Convert year to number
+
+        // Normalize nationality: If not one of the predefined, mark it as 'Others'.
+        const allowed = new Set(["CA", "US", "FI", "SE", "RU"]);
+        d['nationality'] = allowed.has(d['nationality']) ? d['nationality'] : "Others";
       });
       this.data = data;
       
@@ -42,8 +46,8 @@ export class BarChartComponent implements OnInit {
 
   /**
    * Adds a 'decade' field to each record.
-   * Records with year >= 2020 and <= 2022 will be set to "2020-2022",
-   * while all others are grouped by full decades (e.g., "1960-1969").
+   * For years 2020-2022, assigns "2020-2022".
+   * For others, groups by full decades (e.g., "1960-1969").
    */
   private preprocessData(data: any[]): any[] {
     return data.map(d => {
@@ -60,31 +64,30 @@ export class BarChartComponent implements OnInit {
   }
 
   /**
-   * Aggregates the data by decade, breaking down the count by nationality.
+   * Aggregates the data by decade, further breaking down the count by nationality.
+   * Returns an array of objects where each object has:
+   * - decade: string (e.g., "1960-1969" or "2020-2022")
+   * - total: number (the overall count for that decade)
+   * - one property per nationality (the count for that nationality)
    *
-   * This method uses d3.rollup to first group the data by decade, then by nationality,
-   * which results in a nested Map. We then convert this nested structure into an array
-   * of objects. Each object has a 'decade' field, a 'total' field (the overall count for that decade),
-   * and one property per nationality containing the count for that nationality.
-   *
-   * The array is sorted in descending order (most recent decades first).
+   * The resulting array is sorted by decade in descending order.
    */
   private countYAxis(data: any[]): any[] {
-    // Create a nested Map of: decade => (nationality => count).
-    const nested = d3.rollup(data, v => v.length, (d: any) => d.decade, (d: any) => d.nationality);
-
-    // Determine the union of all nationalities.
-    const natSet = new Set<string>();
-    data.forEach(d => natSet.add(d.nationality));
-    this.nationalities = Array.from(natSet);
+    // Create a nested Map: decade => (nationality => count)
+    const nested = d3.rollup(
+      data,
+      v => v.length,
+      (d: any) => d.decade,
+      (d: any) => d.nationality
+    );
 
     const aggregatedData: any[] = [];
     // Convert the nested Map into an array of objects.
     nested.forEach((natMap, decade) => {
       const obj: any = { decade };
       let total = 0;
-      // For each nationality (ensure all are represented even if zero)
-      this.nationalities.forEach(nat => {
+      // Iterate over all predefined nationalities to ensure each is represented.
+      this.predefinedNationalities.forEach(nat => {
         const count = natMap.get(nat) || 0;
         obj[nat] = count;
         total += count;
@@ -93,7 +96,7 @@ export class BarChartComponent implements OnInit {
       aggregatedData.push(obj);
     });
 
-    // Sort the array by decade (descending order based on the starting year of the decade).
+    // Sort the decades (most recent first) by extracting the starting year.
     aggregatedData.sort((a, b) => {
       const startA = parseInt(a.decade.split('-')[0]);
       const startB = parseInt(b.decade.split('-')[0]);
@@ -114,11 +117,10 @@ export class BarChartComponent implements OnInit {
   }
 
   /**
-   * Draws a stacked bar chart.
-   * Each bar represents a decade; within each bar, segments (stacks) represent counts for each nationality.
+   * Draws the stacked bar chart. Each bar is a decade and is divided by nationality.
    */
   private drawBars(): void {
-    // Create the X scale using the decades.
+    // Create the X scale with decades.
     const x = d3.scaleBand()
       .domain(this.data.map((d: any) => d.decade))
       .range([0, this.width])
@@ -130,13 +132,18 @@ export class BarChartComponent implements OnInit {
       .domain([0, maxTotal])
       .range([this.height, 0]);
 
-    // Create a color scale for the nationalities.
-    const color = d3.scaleOrdinal()
-      .domain(this.nationalities)
-      .range(d3.schemeCategory10);
+    // Predefined color mapping.
+    const colorMapping: Record<string, string> = {
+      "CA": "red",
+      "US": "darkblue",
+      "FI": "lightblue",
+      "SE": "yellow",
+      "RU": "black",
+      "Others": "green"
+    };
 
-    // Prepare the data for stacking.
-    const stack = d3.stack().keys(this.nationalities);
+    // Prepare the data for stacking based on predefined nationalities.
+    const stack = d3.stack().keys(this.predefinedNationalities);
     const stackedData = stack(this.data);
 
     // Draw the stacked bars.
@@ -145,7 +152,7 @@ export class BarChartComponent implements OnInit {
       .enter()
       .append("g")
       .attr("class", "layer")
-      .attr("fill", (d: any) => color(d.key))
+      .attr("fill", (d: any) => colorMapping[d.key])
       .selectAll("rect")
       .data((d: any) => d)
       .enter()
@@ -155,7 +162,7 @@ export class BarChartComponent implements OnInit {
       .attr("height", (d: any) => y(d[0]) - y(d[1]))
       .attr("width", x.bandwidth());
 
-    // Add the X axis to the bottom of the chart.
+    // Add the X axis.
     this.svg.append('g')
       .attr('transform', `translate(0, ${this.height})`)
       .call(d3.axisBottom(x))
@@ -167,15 +174,45 @@ export class BarChartComponent implements OnInit {
     this.svg.append('g')
       .call(d3.axisLeft(y));
 
-    // Add titles and axis labels.
+    // Add chart titles and labels.
     this.addLabels();
+
+    // Draw the legend.
+    this.drawLegend(colorMapping);
   }
 
   /**
-   * Adds a title to the chart and labels for the x and y axes.
+   * Adds a legend to the chart with a colored rectangle and label for each predefined nationality.
+   *
+   * @param colorMapping A mapping of nationality keys to their associated colors.
+   */
+  private drawLegend(colorMapping: Record<string, string>): void {
+    // Adjust the legend placement as needed; here, we position it near the top-right corner.
+    const legend = this.svg.append("g")
+      .attr("class", "legend")
+      .attr("transform", `translate(${this.width - 100}, 0)`);
+
+    this.predefinedNationalities.forEach((nat, i) => {
+      const legendRow = legend.append("g")
+        .attr("transform", `translate(0, ${i * 20})`);
+      
+      legendRow.append("rect")
+        .attr("width", 18)
+        .attr("height", 18)
+        .attr("fill", colorMapping[nat]);
+      
+      legendRow.append("text")
+        .attr("x", 24)
+        .attr("y", 14)
+        .text(nat);
+    });
+  }
+
+  /**
+   * Adds titles and axis labels to the chart.
    */
   private addLabels(): void {
-    // Add chart title.
+    // Chart title.
     this.svg.append('text')
       .attr('x', this.width / 2)
       .attr('y', -this.margin.top / 2)
@@ -184,7 +221,7 @@ export class BarChartComponent implements OnInit {
       .style('font-weight', 'bold')
       .text('Number of Points by Decade');
 
-    // Add X-axis label.
+    // X-axis label.
     this.svg.append('text')
       .attr('x', this.width / 2)
       .attr('y', this.height + this.margin.bottom - 10)
@@ -192,7 +229,7 @@ export class BarChartComponent implements OnInit {
       .style('font-size', '14px')
       .text('Decade');
 
-    // Add Y-axis label.
+    // Y-axis label.
     this.svg.append('text')
       .attr('transform', 'rotate(-90)')
       .attr('x', -this.height / 2)
