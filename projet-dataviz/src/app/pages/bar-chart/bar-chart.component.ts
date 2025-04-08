@@ -83,29 +83,31 @@ export class BarChartComponent implements OnInit {
   // Counting the amount of points by year for each decade column
   private countYAxis(data: any[]): any[] {
     const aggregatedData: any[] = [];
-
+  
     const nested = d3.rollup(
       data,
-      v => v.length,
+      v => d3.sum(v, d => +d.points),
       (d: any) => d.decade,
       (d: any) => d.nationality
     );
-
+  
     nested.forEach((natMap, decade) => {
       const obj: any = { decade };
       let total = 0;
-
+  
       this.predefinedNationalities.forEach(nat => {
-        const count = natMap.get(nat) || 0;
-        obj[nat] = count;
-        total += count;
+        const sum = natMap.get(nat) || 0;
+        obj[nat] = sum;
+        total += sum;
       });
+  
       obj.total = total;
       aggregatedData.push(obj);
     });
-
+  
     return aggregatedData;
   }
+  
 
   private createSvg(): void {
     this.svg = d3.select('figure#barChart')
@@ -170,10 +172,7 @@ export class BarChartComponent implements OnInit {
       .style('padding', '10px')
       .style('pointer-events', 'none');
   
-    // Attach mouse events to show and hide tooltip.
     rects.on('mouseover', (event: MouseEvent, d: any) => {
-      // Build a stats string using the aggregated values for each nationality.
-      // These values are the same for the whole bar since d.data represents the aggregated data.
       const stats = this.predefinedNationalities
         .map(nat => `${nat}: ${d.data[nat]}`)
         .join('<br/>');
