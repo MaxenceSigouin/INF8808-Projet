@@ -19,7 +19,10 @@ export class DataProcessingService {
    * Get the data from the CSV file
    * @returns The data from the CSV file
    */
-  getData(): d3.DSVRowArray<string> | undefined {
+  async getData(): Promise<d3.DSVRowArray<string> | undefined> {
+    if (!this.csvData) {
+      await this.loadCSVData();
+    }
     return this.csvData;
   }
 
