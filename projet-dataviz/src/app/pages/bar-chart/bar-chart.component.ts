@@ -7,25 +7,18 @@ import * as d3 from 'd3';
   styleUrls: ['./bar-chart.component.css']
 })
 export class BarChartComponent implements OnInit {
-  private originalData: any[] = [];  // Keep full copy of the CSV data.
-  private data: any[] = [];          // Data that will be processed and used for the chart.
+  private originalData: any[] = [];
+  private data: any[] = [];
   private svg: any;
-  // Predefined list for stacking and ordering (colors are used for nationalities).
   private predefinedNationalities: string[] = ["CA", "US", "FI", "SE", "RU", "Others"];
-
-  // Define margins and dimensions for the chart.
   private margin = { top: 40, right: 20, bottom: 70, left: 60 };
   private width = 800 - this.margin.left - this.margin.right;
   private height = 500 - this.margin.top - this.margin.bottom;
-
-  // Define position filter state (all selected by default).
   selectedCategories: { [key: string]: boolean } = {
-    forward: true,      // forward includes LW, C, RW
-    defensemen: true,   // defensemen includes D
+    forward: true,      // includes LW, C, RW
+    defensemen: true,   // includes D
     goalie: true        // goalie includes G
   };
-
-  // Map each category to the actual positions.
   positionMapping: { [key: string]: string[] } = {
     forward: ['LW', 'C', 'RW'],
     defensemen: ['D'],
@@ -35,36 +28,22 @@ export class BarChartComponent implements OnInit {
   constructor() {}
 
   ngOnInit(): void {
-    // Load the CSV data from the assets folder.
     d3.csv('/assets/nhldraft.csv').then(data => {
-      // Convert numeric fields; adjust field names as needed.
       data.forEach((d: any) => {
-        d['overall_pick'] = +d['overall_pick'];  // Convert overall_pick to number
-        d['year'] = +d['year']; // Convert year to number
-
-        // Normalize nationality: If not one of the predefined, mark it as 'Others'.
         const allowed = new Set(["CA", "US", "FI", "SE", "RU"]);
         d['nationality'] = allowed.has(d['nationality']) ? d['nationality'] : "Others";
       });
       
-      // Keep a copy of the original data.
       this.originalData = data;
       
-      // Create the SVG element once.
       this.createSvg();
-      // Filter the data with default selected positions and update the chart.
       this.updateFilteredData();
     }).catch(error => {
       console.error('Error loading CSV:', error);
     });
   }
 
-  /**
-   * This method applies the current position filter, processes the filtered data,
-   * aggregates it, and redraws the chart.
-   */
   updateFilteredData(): void {
-    // Collect positions to include based on the selected categories.
     let selectedPositions: string[] = [];
     for (let cat in this.selectedCategories) {
       if (this.selectedCategories[cat]) {
@@ -72,35 +51,21 @@ export class BarChartComponent implements OnInit {
       }
     }
     
-    // Filter the original data so only rows with the desired positions remain.
     let filteredData = this.originalData.filter(d => selectedPositions.includes(d['position']));
-    
-    // Process the filtered data
     const processedData = this.preprocessData(filteredData);
-    // Aggregate the processed data by decade and nationality.
     this.data = this.countYAxis(processedData);
     
-    // Redraw the chart: clear the existing SVG content and redraw.
     this.svg.selectAll("*").remove();
     this.drawBars();
   }
 
-  /**
-   * Toggle a given category (forward, defensemen, goalie) when a user clicks a button.
-   * This will update the filtered data and redraw the chart.
-   *
-   * @param cat - The category to toggle.
-   */
+  // HTML Button Event Handler
   toggleCategory(cat: string): void {
     this.selectedCategories[cat] = !this.selectedCategories[cat];
     this.updateFilteredData();
   }
 
-  /**
-   * Adds a 'decade' field to each record.
-   * For years 2020-2022, assigns "2020-2022".
-   * For others, groups by full decades (e.g., "1960-1969").
-   */
+  // Addind de decade column to the data
   private preprocessData(data: any[]): any[] {
     return data.map(d => {
       const year = +d['year'];
@@ -115,17 +80,10 @@ export class BarChartComponent implements OnInit {
     });
   }
 
-  /**
-   * Aggregates the data by decade, further breaking down the count by nationality.
-   * Returns an array of objects where each object has:
-   * - decade: string (e.g., "1960-1969" or "2020-2022")
-   * - total: number (the overall count for that decade)
-   * - one property per nationality (the count for that nationality)
-   *
-   * The resulting array is sorted by decade in descending order.
-   */
+  // Counting the amount of points by year for each decade column
   private countYAxis(data: any[]): any[] {
-    // Create a nested Map: decade => (nationality => count)
+    const aggregatedData: any[] = [];
+
     const nested = d3.rollup(
       data,
       v => v.length,
@@ -133,12 +91,10 @@ export class BarChartComponent implements OnInit {
       (d: any) => d.nationality
     );
 
-    const aggregatedData: any[] = [];
-    // Convert the nested Map into an array of objects.
     nested.forEach((natMap, decade) => {
       const obj: any = { decade };
       let total = 0;
-      // Iterate over all predefined nationalities to ensure each is represented.
+
       this.predefinedNationalities.forEach(nat => {
         const count = natMap.get(nat) || 0;
         obj[nat] = count;
@@ -148,19 +104,9 @@ export class BarChartComponent implements OnInit {
       aggregatedData.push(obj);
     });
 
-    // Sort the decades (most recent first) by extracting the starting year.
-    aggregatedData.sort((a, b) => {
-      const startA = parseInt(a.decade.split('-')[0]);
-      const startB = parseInt(b.decade.split('-')[0]);
-      return startB - startA;
-    });
-
     return aggregatedData;
   }
 
-  /**
-   * Creates the SVG container inside the element with id "barChart".
-   */
   private createSvg(): void {
     this.svg = d3.select('figure#barChart')
       .append('svg')
@@ -170,9 +116,6 @@ export class BarChartComponent implements OnInit {
       .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
   }
 
-  /**
-   * Draws the stacked bar chart. Each bar is a decade and is divided by nationality.
-   */
   private drawBars(): void {
     // Create the X scale with decades.
     const x = d3.scaleBand()
@@ -257,22 +200,14 @@ export class BarChartComponent implements OnInit {
       .attr('transform', 'translate(-10,0)rotate(-45)')
       .style('text-anchor', 'end');
   
-    // Add the Y axis.
     this.svg.append('g')
       .call(d3.axisLeft(y));
   
-    // Add chart titles and labels.
     this.addLabels();
   
-    // Draw the legend.
     this.drawLegend(colorMapping);
   }
   
-  /**
-   * Adds a legend to the chart with a colored rectangle and label for each predefined nationality.
-   *
-   * @param colorMapping A mapping of nationality keys to their associated colors.
-   */
   private drawLegend(colorMapping: Record<string, string>): void {
     // Adjust the legend placement as needed; here, we position it near the top-right corner.
     const legend = this.svg.append("g")
@@ -295,9 +230,7 @@ export class BarChartComponent implements OnInit {
     });
   }
 
-  /**
-   * Adds titles and axis labels to the chart.
-   */
+
   private addLabels(): void {
     // Chart title.
     this.svg.append('text')
