@@ -21,6 +21,7 @@
   .sidebar a {
     color: white;
     text-decoration: none;
+    cursor: pointer;
   }
   
   .sidebar a:hover {

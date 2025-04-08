@@ -1,9 +1,14 @@
 <div class="sidebar">
-    <h2>Menu</h2>
-    <ul>
-      <li><a routerLink="/home">Home</a></li>
-      <li><a routerLink="/about">About</a></li>
-      <li><a routerLink="/contact">Contact</a></li>
-    </ul>
+  <h2>Menu</h2>
+  <ul>
+    <li routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      <a routerLink="/">Home</a>
+    </li>
+    <li routerLinkActive="active">
+      <a routerLink="/beeswarm">Bee Swarm</a>
+    </li>
+    <li routerLinkActive="active">
+      <a routerLink="/bubble">Bubble Chart</a>
+    </li>
+  </ul>
 </div>
-  
