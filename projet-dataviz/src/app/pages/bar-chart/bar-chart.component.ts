@@ -179,13 +179,13 @@ export class BarChartComponent implements OnInit {
       .domain(this.data.map((d: any) => d.decade))
       .range([0, this.width])
       .padding(0.2);
-
+  
     // Y scale: based on the total counts per decade.
     const maxTotal = d3.max(this.data, (d: any) => d.total)!;
     const y = d3.scaleLinear()
       .domain([0, maxTotal])
       .range([this.height, 0]);
-
+  
     // Predefined color mapping for nationalities.
     const colorMapping: Record<string, string> = {
       "CA": "red",
@@ -195,19 +195,20 @@ export class BarChartComponent implements OnInit {
       "RU": "black",
       "Others": "green"
     };
-
+  
     // Prepare the data for stacking based on predefined nationalities.
     const stack = d3.stack().keys(this.predefinedNationalities);
     const stackedData = stack(this.data);
-
+  
     // Draw the stacked bars.
-    this.svg.selectAll("g.layer")
+    const layer = this.svg.selectAll("g.layer")
       .data(stackedData)
       .enter()
       .append("g")
       .attr("class", "layer")
-      .attr("fill", (d: any) => colorMapping[d.key])
-      .selectAll("rect")
+      .attr("fill", (d: any) => colorMapping[d.key]);
+  
+    const rects = layer.selectAll("rect")
       .data((d: any) => d)
       .enter()
       .append("rect")
@@ -215,7 +216,39 @@ export class BarChartComponent implements OnInit {
       .attr("y", (d: any) => y(d[1]))
       .attr("height", (d: any) => y(d[0]) - y(d[1]))
       .attr("width", x.bandwidth());
-
+  
+    // Create a tooltip div that is hidden by default.
+    const tooltip = d3.select('body').append('div')
+      .attr('class', 'tooltip')
+      .style('opacity', 0)
+      .style('position', 'absolute')
+      .style('background-color', 'white')
+      .style('border', '1px solid #ccc')
+      .style('padding', '10px')
+      .style('pointer-events', 'none');
+  
+    // Attach mouse events to show and hide tooltip.
+    rects.on('mouseover', (event: MouseEvent, d: any) => {
+      // Build a stats string using the aggregated values for each nationality.
+      // These values are the same for the whole bar since d.data represents the aggregated data.
+      const stats = this.predefinedNationalities
+        .map(nat => `${nat}: ${d.data[nat]}`)
+        .join('<br/>');
+  
+      tooltip.transition()
+        .duration(200)
+        .style('opacity', 0.9);
+  
+      tooltip.html(`<strong>${d.data.decade}</strong><br/>${stats}`)
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 28) + 'px');
+    })
+    .on('mouseout', () => {
+      tooltip.transition()
+        .duration(500)
+        .style('opacity', 0);
+    });
+  
     // Add the X axis.
     this.svg.append('g')
       .attr('transform', `translate(0, ${this.height})`)
@@ -223,18 +256,18 @@ export class BarChartComponent implements OnInit {
       .selectAll('text')
       .attr('transform', 'translate(-10,0)rotate(-45)')
       .style('text-anchor', 'end');
-
+  
     // Add the Y axis.
     this.svg.append('g')
       .call(d3.axisLeft(y));
-
+  
     // Add chart titles and labels.
     this.addLabels();
-
+  
     // Draw the legend.
     this.drawLegend(colorMapping);
   }
-
+  
   /**
    * Adds a legend to the chart with a colored rectangle and label for each predefined nationality.
    *
