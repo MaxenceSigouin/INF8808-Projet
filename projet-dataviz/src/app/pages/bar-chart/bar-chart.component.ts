@@ -121,7 +121,15 @@ export class BarChartComponent implements OnInit {
   private drawBars(): void {
     // Create the X scale with decades.
     const x = d3.scaleBand()
-      .domain(this.data.map((d: any) => d.decade))
+      .domain(this.data
+        .slice() // create a copy to avoid mutating original
+        .sort((a: any, b: any) => {
+          const aStart = parseInt(a.decade.split('-')[0]);
+          const bStart = parseInt(b.decade.split('-')[0]);
+          return aStart - bStart;
+        })
+        .map((d: any) => d.decade)
+      )
       .range([0, this.width])
       .padding(0.2);
   
