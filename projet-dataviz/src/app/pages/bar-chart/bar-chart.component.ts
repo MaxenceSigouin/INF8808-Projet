@@ -22,14 +22,50 @@ export class BarChartComponent implements OnInit {
       // Convert numeric fields; adjust field names as needed.
       data.forEach((d: any) => {
         d['overall_pick'] = +d['overall_pick'];  // Convert overall_pick to number
-        // If you want to chart another field, do the conversion here too.
+        d['year'] = +d['year']; // Convert year to number
       });
       this.data = data;
+      
+      // Pre-process the data to add a decade property. For this example, we are grouping full decades.
+      this.data = this.preprocessData(this.data);
+      // Now aggregate the data: count the number of records per decade.
+      this.data = this.countYAxis(this.data);
+      
       this.createSvg();
       this.drawBars();
     }).catch(error => {
       console.error('Error loading CSV:', error);
     });
+  }
+
+  /**
+   * Adds a 'decade' field to each record.
+   * Groups the years into full decades. For example: 1960-1969, 1970-1979, etc.
+   */
+  private preprocessData(data: any[]): any[] {
+    return data.map(d => {
+      const year = +d['year'];
+      // Determine the starting year of the decade.
+      const decadeStart = Math.floor(year / 10) * 10;
+      const decadeEnd = decadeStart + 9;
+      // Create a new field 'decade'
+      d['decade'] = `${decadeStart}-${decadeEnd}`;
+      return d;
+    });
+  }
+
+  /**
+   * Aggregates the data by decade, counting the number of entries per decade.
+   * Returns an array where each object has the fields:
+   * - decade: string (e.g. "1960-1969")
+   * - total: number (the count of points/entries for that decade)
+   */
+  private countYAxis(data: any[]): any[] {
+    // Use d3.rollup to create a Map with decade as key and number of records as value.
+    const aggregatedMap = d3.rollup(data, v => v.length, (d: any) => d.decade);
+    // Convert the Map into an array of objects.
+    const aggregatedData = Array.from(aggregatedMap, ([decade, total]) => ({ decade, total }));
+    return aggregatedData;
   }
 
   private createSvg(): void {
@@ -43,27 +79,26 @@ export class BarChartComponent implements OnInit {
   }
 
   private drawBars(): void {
-    // Create the X scale using player names (or another unique field)
+    // Create the X scale using the decades.
     const x = d3.scaleBand()
-      .domain(this.data.map(d => d.player))
+      .domain(this.data.map(d => d.decade))
       .range([0, this.width])
       .padding(0.2);
 
-    // Create the Y scale using overall pick. Using d3.max for the domain.
-    // If using a metric where lower values are "better" (like overall_pick), you may wish to invert the scale.
+    // Create the Y scale using the aggregated count.
     const y = d3.scaleLinear()
-      .domain([0, d3.max(this.data, d => d.overall_pick)!])
+      .domain([0, d3.max(this.data, d => d.total)!])
       .range([this.height, 0]);
 
-    // Append bars (rectangles) for each data entry.
+    // Append bars (rectangles) for each decade's total count.
     this.svg.selectAll('rect')
       .data(this.data)
       .enter()
       .append('rect')
-      .attr('x', (d: any) => x(d.player)!)
-      .attr('y', (d: any) => y(d.overall_pick))
+      .attr('x', (d: any) => x(d.decade)!)
+      .attr('y', (d: any) => y(d.total))
       .attr('width', x.bandwidth())
-      .attr('height', (d: any) => this.height - y(d.overall_pick))
+      .attr('height', (d: any) => this.height - y(d.total))
       .attr('fill', '#69b3a2');
 
     // Add the X axis to the bottom of the chart.
