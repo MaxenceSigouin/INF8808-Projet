@@ -11,6 +11,14 @@ export class BarChartComponent implements OnInit {
   private data: any[] = [];
   private svg: any;
   private predefinedNationalities: string[] = ["CA", "US", "FI", "SE", "RU", "Others"];
+  private nationalityNames: Record<string, string> = {
+    "CA": "Canada",
+    "US": "United States",
+    "FI": "Finland",
+    "SE": "Sweden",
+    "RU": "Russia",
+    "Others": "Others"
+  };  
   private margin = { top: 40, right: 20, bottom: 70, left: 60 };
   private width = 800 - this.margin.left - this.margin.right;
   private height = 500 - this.margin.top - this.margin.bottom;
@@ -233,7 +241,7 @@ export class BarChartComponent implements OnInit {
       legendRow.append("text")
         .attr("x", 24)
         .attr("y", 14)
-        .text(nat);
+        .text(this.nationalityNames[nat]);
     });
   }
 
