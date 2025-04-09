@@ -1,4 +1,30 @@
-<body>
-  <!-- <button (click)="groupByNationality()">Grouper par nationalité</button>
-  <button (click)="groupByDefault()">Vue par défaut</button> -->
-</body>
+<div id="beeswarm-container">
+  <div id="beaswarm-chart-topbar">
+    <mat-button-toggle-group
+      id="view-toggle"
+      [(ngModel)]="viewSelected"
+      (ngModelChange)="transitionView()"
+      name="viewToggle"
+      aria-label="View Toggle"
+    >
+      <mat-button-toggle value="default">Default</mat-button-toggle>
+      <mat-button-toggle value="nationality"
+        >Grouped by nationnalities</mat-button-toggle
+      >
+      <mat-button-toggle value="position"
+        >Grouped by position</mat-button-toggle
+      >
+    </mat-button-toggle-group>
+    <mat-form-field>
+      <mat-label>Draft Year selected</mat-label>
+      <mat-select
+        [(ngModel)]="draftYearSelected"
+        (ngModelChange)="updateBeeswarmChart(draftYearSelected)"
+      >
+        @for (year of draftYears; track year) {
+        <mat-option [value]="year">{{ year }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+</div>

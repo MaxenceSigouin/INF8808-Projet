@@ -3,21 +3,34 @@ import { Component } from '@angular/core';
 import { DataProcessingService } from '../../../services/data-processsing/data-processing.service';
 import { Player } from '../../../interfaces/Player';
 import { ChartStyleManagerService } from '../../../services/chart-style-manager/chart-style-manager.service';
-
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 @Component({
   selector: 'app-beeswarm-chart',
-  imports: [],
+  imports: [
+    MatButtonToggleModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
+  ],
   templateUrl: './beeswarm-chart.component.html',
   styleUrl: './beeswarm-chart.component.css',
 })
 export class BeeswarmChartComponent {
-  CHART_HEIGTH: number = 800;
-  CHART_WIDTH: number = 1000;
-
+  CHART_HEIGTH: number = 1000;
+  CHART_WIDTH: number = 1500;
+  viewSelected: string = 'default';
   xScale: d3.ScaleLinear<number, number> | undefined;
   yScale: d3.ScalePoint<string> | undefined;
   radiusScale: d3.ScaleLinear<number, number> | undefined;
   currentData: Player[] = [];
+  draftYears: number[] = [];
+  draftYearSelected: number = 2010;
 
   constructor(
     private dataSrv: DataProcessingService,
@@ -25,8 +38,8 @@ export class BeeswarmChartComponent {
   ) {}
 
   ngAfterViewInit() {
-    this.createDraftYearSelector();
-    this.updateBeeswarmChart(2010);
+    this.updateDraftYearsAvailable();
+    this.updateBeeswarmChart(this.draftYearSelected);
   }
 
   createBeeswarmChart(stat: keyof Player = 'points') {
@@ -41,13 +54,12 @@ export class BeeswarmChartComponent {
     this.xScale = d3
       .scaleLinear()
       .domain([1, d3.max(this.currentData, (d) => d.overall_pick) || 210])
-      .range([60, this.CHART_WIDTH - 60]);
+      .range([150, this.CHART_WIDTH - 80]);
 
     this.yScale = d3
       .scalePoint()
       .domain(this.chartStyleSrv.color.domain())
-      .range([100, this.CHART_HEIGTH - 200])
-      .padding(1);
+      .range([200, this.CHART_HEIGTH - 150]);
 
     const simulation = d3
       .forceSimulation(this.currentData)
@@ -55,14 +67,14 @@ export class BeeswarmChartComponent {
         'x',
         d3.forceX((d: Player) => this.xScale!(d.overall_pick)).strength(1)
       )
-      .force('y', d3.forceY(this.CHART_HEIGTH / 2).strength(0.8))
+      .force('y', d3.forceY(this.CHART_HEIGTH / 2).strength(1))
       .force(
         'collide',
-        d3.forceCollide((d) => this.radiusScale!(d[stat]) + 2)
+        d3.forceCollide((d) => this.radiusScale!(d[stat]) * 2)
       )
       .stop();
 
-    for (let i = 0; i < 120; ++i) simulation.tick();
+    for (let i = 0; i < 300; ++i) simulation.tick();
 
     this.currentData.forEach((d) => {
       d['x0'] = d.x!;
@@ -70,7 +82,7 @@ export class BeeswarmChartComponent {
     });
 
     const tooltip = d3
-      .select('body')
+      .select('#beeswarm-container')
       .append('div')
       .attr('class', 'tooltip')
       .style('position', 'absolute')
@@ -82,7 +94,7 @@ export class BeeswarmChartComponent {
       .style('opacity', 0);
 
     const svg = d3
-      .select('body')
+      .select('#beeswarm-container')
       .append('svg')
       .attr('id', 'beeswarm-chart')
       .attr('height', this.CHART_HEIGTH)
@@ -95,7 +107,11 @@ export class BeeswarmChartComponent {
       .attr('class', 'beeswarm-circle')
       .attr('cx', (d) => d['x0'])
       .attr('cy', (d) => d['y0'])
-      .attr('r', (d) => this.radiusScale!(d[stat]))
+      .attr('r', (d) => {
+        console.log(d[stat]);
+        if (d[stat] === 0) return this.radiusScale!(5);
+        else return this.radiusScale!(5 * d[stat]);
+      })
       .attr(
         'fill',
         (d) =>
@@ -125,93 +141,80 @@ export class BeeswarmChartComponent {
 
     svg
       .append('g')
-      .attr('transform', `translate(0, ${this.CHART_HEIGTH - 30})`)
+      .attr('transform', `translate(0, ${this.CHART_HEIGTH - 40})`)
       .call(d3.axisBottom(this.xScale).ticks(10))
+      .attr('font-size', '16px')
       .append('text')
       .attr('x', this.CHART_WIDTH / 2)
-      .attr('y', 30)
+      .attr('y', 40)
       .attr('fill', '#000')
+      .attr('font-size', '16px')
       .attr('text-anchor', 'middle')
-      .text('Rang de sélection');
+      .text('Draft Position');
 
     this.createLegend();
+    this.transitionView();
   }
 
-  transitionView(view: 'default' | 'grouped') {
+  transitionView() {
     const dur = 1000;
+    switch (this.viewSelected) {
+      case 'nationality':
+        const grouped = d3.group(this.currentData, (d) => d.nationality);
 
-    if (view === 'default') {
-      d3.selectAll<SVGCircleElement, Player>('.beeswarm-circle')
-        .transition()
-        .duration(dur)
-        .ease(d3.easeCubicInOut)
-        .attr('cx', (d) => d['x0'])
-        .attr('cy', (d) => d['y0']);
-    } else {
-      const grouped = d3.group(this.currentData, (d) => d.nationality);
+        grouped.forEach((players, nationality) => {
+          const y = this.yScale ? this.yScale(nationality)! : 0;
 
-      grouped.forEach((players, nationality) => {
-        const y = this.yScale ? this.yScale(nationality)! : 0;
+          const sim = d3
+            .forceSimulation(players)
+            .force(
+              'x',
+              d3
+                .forceX((d: Player) => this.xScale!(d.overall_pick))
+                .strength(0.5)
+            )
+            .force('y', d3.forceY(() => y).strength(1))
+            .force(
+              'collide',
+              d3.forceCollide((d) => this.radiusScale!(d.points) * 2)
+            )
+            .alphaDecay(0.05)
+            .stop();
 
-        const sim = d3
-          .forceSimulation(players)
-          .force(
-            'x',
-            d3.forceX((d: Player) => this.xScale!(d.overall_pick)).strength(0.5)
-          )
-          .force('y', d3.forceY(() => y).strength(1))
-          .force(
-            'collide',
-            d3.forceCollide((d) => this.radiusScale!(d.points) + 2)
-          )
-          .alphaDecay(0.05)
-          .stop();
+          for (let i = 0; i < 200; ++i) sim.tick();
 
-        for (let i = 0; i < 200; ++i) sim.tick();
-
-        players.forEach((d) => {
-          d['x1'] = d.x!;
-          d['y1'] = d.y!;
+          players.forEach((d) => {
+            d['x1'] = d.x!;
+            d['y1'] = d.y!;
+          });
         });
-      });
 
-      d3.selectAll<SVGCircleElement, Player>('.beeswarm-circle')
-        .transition()
-        .duration(dur)
-        .ease(d3.easeCubicInOut)
-        .attr('cx', (d) => d['x1'])
-        .attr('cy', (d) => d['y1']);
+        d3.selectAll<SVGCircleElement, Player>('.beeswarm-circle')
+          .transition()
+          .duration(dur)
+          .ease(d3.easeCubicInOut)
+          .attr('cx', (d) => d['x1'])
+          .attr('cy', (d) => d['y1']);
+        break;
+
+      case 'position':
+        break;
+
+      default:
+        d3.selectAll<SVGCircleElement, Player>('.beeswarm-circle')
+          .transition()
+          .duration(dur)
+          .ease(d3.easeCubicInOut)
+          .attr('cx', (d) => d['x0'])
+          .attr('cy', (d) => d['y0']);
+        break;
     }
   }
 
-  createDraftYearSelector() {
-    const years = d3.range(1963, 2023);
-    const select = d3
-      .select('body')
-      .append('select')
-      .attr('id', 'year-selector')
-      .on('change', (event) => {
-        const selectedYear = +event.target.value;
-        this.updateBeeswarmChart(selectedYear);
-      });
-
-    select
-      .selectAll('option')
-      .data(years)
-      .join('option')
-      .attr('value', (d) => d)
-      .property('selected', (d) => d === 2010)
-      .text((d) => d);
-
-    d3.select('body')
-      .append('button')
-      .text('Grouper par nationalité')
-      .on('click', () => this.transitionView('grouped'));
-
-    d3.select('body')
-      .append('button')
-      .text('Vue par défaut')
-      .on('click', () => this.transitionView('default'));
+  updateDraftYearsAvailable() {
+    this.dataSrv.getDataAsPlayer().then((data: Player[]) => {
+      this.draftYears = Array.from(new Set(data.map((d) => d.year)));
+    });
   }
 
   updateBeeswarmChart(year: number) {
@@ -226,18 +229,19 @@ export class BeeswarmChartComponent {
 
       this.currentData = data;
       this.createBeeswarmChart();
+      this.transitionView();
     });
   }
 
   createLegend() {
     const colorScale = this.chartStyleSrv.color;
     const colorMap = this.chartStyleSrv.customColors;
-    const beeswarmChartSVG = d3.select('#beeswarm-chart');
-    if (!beeswarmChartSVG) return;
 
-    const legend = beeswarmChartSVG
+    const legend = d3
+      .select('#beeswarm-chart')
       .append('g')
-      .attr('transform', `translate(${this.CHART_WIDTH - 150}, 20)`);
+      .attr('id', 'legend-container')
+      .attr('transform', `translate(${10}, ${this.CHART_HEIGTH / 2 - 80})`);
 
     const legendData = colorScale.domain();
 
