@@ -53,7 +53,7 @@ export class BeeswarmChartComponent {
 
     this.xScale = d3
       .scaleLinear()
-      .domain([1, d3.max(this.currentData, (d) => d.overall_pick) || 210])
+      .domain([1, d3.max(this.currentData, (d) => d.overall_pick) || 220])
       .range([150, this.CHART_WIDTH - 80]);
 
     this.yScale = d3
@@ -108,9 +108,7 @@ export class BeeswarmChartComponent {
       .attr('cx', (d) => d['x0'])
       .attr('cy', (d) => d['y0'])
       .attr('r', (d) => {
-        console.log(d[stat]);
-        if (d[stat] === 0) return this.radiusScale!(5);
-        else return this.radiusScale!(5 * d[stat]);
+        return 2 * this.radiusScale!(d[stat]);
       })
       .attr(
         'fill',
@@ -150,7 +148,7 @@ export class BeeswarmChartComponent {
       .attr('fill', '#000')
       .attr('font-size', '16px')
       .attr('text-anchor', 'middle')
-      .text('Draft Position');
+      .text('Overall Pick');
 
     this.createLegend();
     this.transitionView();
