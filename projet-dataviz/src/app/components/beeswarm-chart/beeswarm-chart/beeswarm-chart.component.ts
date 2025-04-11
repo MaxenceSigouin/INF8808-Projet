@@ -8,6 +8,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
+
 @Component({
   selector: 'app-beeswarm-chart',
   imports: [
@@ -19,10 +20,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
     MatInputModule,
   ],
   templateUrl: './beeswarm-chart.component.html',
-  styleUrl: './beeswarm-chart.component.css',
+  styleUrls: ['./beeswarm-chart.component.css'],
 })
 export class BeeswarmChartComponent {
-  DEFAULT_CHART_HEIGTH: number = window.innerHeight - 100; // Default to 800 if window height is unavailable
+  DEFAULT_CHART_HEIGTH: number = window.innerHeight - 100;
   DEFAULT_CHART_WIDTH: number = window.innerWidth - 100;
   VIEW_BY_NATION_CHART_HEIGTH: number = 1400;
   VIEW_BY_NATION_CHART_WIDTH: number = window.innerWidth - 100;
@@ -109,9 +110,7 @@ export class BeeswarmChartComponent {
       .attr('class', 'beeswarm-circle')
       .attr('cx', (d) => d['x0'])
       .attr('cy', (d) => d['y0'])
-      .attr('r', (d) => {
-        return this.radiusScale!(d[stat]);
-      })
+      .attr('r', (d) => this.radiusScale!(d[stat]))
       .attr(
         'fill',
         (d) =>
@@ -128,16 +127,17 @@ export class BeeswarmChartComponent {
             `<strong>${d.player}</strong><br/>
             Rang: ${d.overall_pick}<br/>
             Points: ${d.points}<br/>
-            Buts: ${d.goals}<br/>
+            Goals: ${d.goals}<br/>
             Assists: ${d.assists}<br/>
-            Matchs: ${d.games_played}`
+            Games: ${d.games_played}`
           )
           .style('left', event.pageX + 10 + 'px')
           .style('top', event.pageY - 30 + 'px');
       })
       .on('mouseout', () => {
         tooltip.transition().duration(200).style('opacity', 0);
-      });
+      })
+      .on('click', (event, d) => this.createRadarChart(d));
 
     svg
       .append('g')
@@ -156,6 +156,155 @@ export class BeeswarmChartComponent {
     this.createLegend();
     this.transitionView();
   }
+
+  /**
+ * Creates a radar chart for a given player's stats.
+ * The radar displays goals, assists, points, games played, penalty minutes, and plus/minus.
+ * For plus/minus, the axis minimum is the lowest negative number and the maximum is the highest.
+ * Additionally, on hover over each radar point, a tooltip will show the stat's value.
+ * The player's name and position are shown at the top.
+ */
+createRadarChart(player: Player): void {
+  // Remove any previous radar chart if it exists
+  d3.select('#radar-chart').remove();
+  // Remove any existing tooltip for the radar chart, if applicable
+  d3.selectAll('.radar-tooltip').remove();
+
+  // Define dimensions and margins for the radar chart
+  const radarWidth = 300;
+  const radarHeight = 300;
+  const margin = 40;
+  const radius = Math.min(radarWidth, radarHeight) / 2 - margin;
+  const cx = radarWidth / 2;
+  const cy = radarHeight / 2;
+
+  // Compute maximum values (and for plus/minus, the minimum value) for each stat based on this year's players
+  const maxGoals = d3.max(this.currentData, (d) => d.goals) || 1;
+  const maxAssists = d3.max(this.currentData, (d) => d.assists) || 1;
+  const maxPoints = d3.max(this.currentData, (d) => d.points) || 1;
+  const maxGames = d3.max(this.currentData, (d) => d.games_played) || 1;
+
+  // Prepare stats array including the new metrics.
+  // For plus/minus, we include a "min" property for normalization.
+  const stats = [
+    { label: 'Goals', value: player.goals, max: maxGoals },
+    { label: 'Assists', value: player.assists, max: maxAssists },
+    { label: 'Points', value: player.points, max: maxPoints },
+    { label: 'Games', value: player.games_played, max: maxGames },
+  ];
+
+  // Create a tooltip for the radar points.
+  const tooltip = d3.select('#beeswarm-container')
+    .append('div')
+    .attr('class', 'radar-tooltip')
+    .style('position', 'absolute')
+    .style('background', '#fff')
+    .style('padding', '6px')
+    .style('border', '1px solid #ccc')
+    .style('border-radius', '4px')
+    .style('pointer-events', 'none')
+    .style('opacity', 0);
+
+  // Create SVG container for the radar chart and position it at the top middle of the container.
+  const svg = d3.select('#beeswarm-container')
+    .append('svg')
+    .attr('id', 'radar-chart')
+    .attr('width', radarWidth)
+    .attr('height', radarHeight)
+    .style('position', 'absolute')
+    // Adjust the top value to place the chart near the top; modify as needed.
+    .style('top', '20px')
+    // Center horizontally based on the default chart width.
+    .style('left', (this.DEFAULT_CHART_WIDTH - radarWidth) / 2 + 'px');
+
+  // Create a group element centered in the SVG
+  const g = svg.append('g')
+    .attr('transform', `translate(${cx}, ${cy})`);
+
+  // Draw concentric circles (grid lines)
+  const levels = 4;
+  for (let i = 1; i <= levels; i++) {
+    g.append('circle')
+      .attr('r', radius * (i / levels))
+      .attr('fill', 'none')
+      .attr('stroke', '#ccc')
+      .attr('stroke-dasharray', '2,2');
+  }
+
+  // Draw axis lines and labels for each stat
+  stats.forEach((stat, i) => {
+    const angle = (Math.PI * 2) / stats.length * i - Math.PI / 2;
+    const x = radius * Math.cos(angle);
+    const y = radius * Math.sin(angle);
+
+    // Axis line
+    g.append('line')
+      .attr('x1', 0)
+      .attr('y1', 0)
+      .attr('x2', x)
+      .attr('y2', y)
+      .attr('stroke', '#ccc')
+      .attr('stroke-dasharray', '2,2');
+
+    // Axis label (placed slightly outside the grid)
+    g.append('text')
+      .attr('x', x * 1.1)
+      .attr('y', y * 1.1)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '10px')
+      .text(stat.label);
+  });
+
+  // Calculate the points for the radar polygon.
+  // For stats with a "min" property (plus/minus), normalize using (value - min)/(max - min).
+  // Otherwise, assume a minimum of zero.
+  const computedPoints = stats.map((stat, i) => {
+    const angle = (Math.PI * 2) / stats.length * i - Math.PI / 2;
+    let r: number;
+    if ((stat as any).min !== undefined) {
+      r = ((stat.value - (stat as any).min) / ((stat as any).max - (stat as any).min)) * radius;
+    } else {
+      r = (stat.value / stat.max) * radius;
+    }
+    return { stat: stat, x: r * Math.cos(angle), y: r * Math.sin(angle) };
+  });
+
+  // Draw the radar polygon connecting the computed points.
+  g.append('polygon')
+    .datum(computedPoints)
+    .attr('points', (d) => d.map(pt => [pt.x, pt.y].join(',')).join(' '))
+    .attr('fill', 'rgba(255,0,0,0.5)')
+    .attr('stroke', 'red')
+    .attr('stroke-width', 2);
+
+  // Draw circles at each vertex and add hover events for tooltips.
+  computedPoints.forEach((pt) => {
+    g.append('circle')
+      .attr('cx', pt.x)
+      .attr('cy', pt.y)
+      .attr('r', 3)
+      .attr('fill', 'red')
+      .on('mouseover', (event) => {
+        tooltip.transition().duration(200).style('opacity', 1);
+        tooltip.html(`${pt.stat.label}: ${pt.stat.value}`)
+          .style('left', (event.pageX + 5) + 'px')
+          .style('top', (event.pageY - 28) + 'px');
+      })
+      .on('mouseout', () => {
+        tooltip.transition().duration(200).style('opacity', 0);
+      });
+  });
+
+  // Add the player's name at the top of the radar chart.
+  svg.append('text')
+    .attr('x', cx)
+    .attr('y', margin / 2)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '14px')
+    .attr('font-weight', 'bold')
+    .text(`${player.player}, ${player.position}`);
+}
+
 
   transitionView() {
     const dur = 1000;
@@ -212,6 +361,7 @@ export class BeeswarmChartComponent {
         break;
 
       case 'position':
+        // Your implementation for position view (if applicable)
         break;
 
       default:
