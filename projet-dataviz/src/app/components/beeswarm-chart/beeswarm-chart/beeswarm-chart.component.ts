@@ -22,8 +22,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
   styleUrl: './beeswarm-chart.component.css',
 })
 export class BeeswarmChartComponent {
-  CHART_HEIGTH: number = 1000;
-  CHART_WIDTH: number = 1500;
+  DEFAULT_CHART_HEIGTH: number = window.innerHeight - 100; // Default to 800 if window height is unavailable
+  DEFAULT_CHART_WIDTH: number = window.innerWidth - 100;
+  VIEW_BY_NATION_CHART_HEIGTH: number = 1400;
+  VIEW_BY_NATION_CHART_WIDTH: number = window.innerWidth - 100;
   viewSelected: string = 'default';
   xScale: d3.ScaleLinear<number, number> | undefined;
   yScale: d3.ScalePoint<string> | undefined;
@@ -49,17 +51,17 @@ export class BeeswarmChartComponent {
     this.radiusScale = d3
       .scaleSqrt()
       .domain([0, d3.max(this.currentData, (d) => d[stat]) || 1])
-      .range([2, 15]);
+      .range([5, 35]);
 
     this.xScale = d3
       .scaleLinear()
       .domain([1, d3.max(this.currentData, (d) => d.overall_pick) || 220])
-      .range([150, this.CHART_WIDTH - 80]);
+      .range([200, this.DEFAULT_CHART_WIDTH - 80]);
 
     this.yScale = d3
       .scalePoint()
       .domain(this.chartStyleSrv.color.domain())
-      .range([200, this.CHART_HEIGTH - 150]);
+      .range([200, this.DEFAULT_CHART_HEIGTH - 100]);
 
     const simulation = d3
       .forceSimulation(this.currentData)
@@ -67,10 +69,10 @@ export class BeeswarmChartComponent {
         'x',
         d3.forceX((d: Player) => this.xScale!(d.overall_pick)).strength(1)
       )
-      .force('y', d3.forceY(this.CHART_HEIGTH / 2).strength(1))
+      .force('y', d3.forceY(this.DEFAULT_CHART_HEIGTH / 2).strength(1))
       .force(
         'collide',
-        d3.forceCollide((d) => this.radiusScale!(d[stat]) * 2)
+        d3.forceCollide((d) => this.radiusScale!(d[stat]))
       )
       .stop();
 
@@ -97,8 +99,8 @@ export class BeeswarmChartComponent {
       .select('#beeswarm-container')
       .append('svg')
       .attr('id', 'beeswarm-chart')
-      .attr('height', this.CHART_HEIGTH)
-      .attr('width', this.CHART_WIDTH);
+      .attr('height', this.DEFAULT_CHART_HEIGTH)
+      .attr('width', this.DEFAULT_CHART_WIDTH);
 
     svg
       .selectAll('.beeswarm-circle')
@@ -108,7 +110,7 @@ export class BeeswarmChartComponent {
       .attr('cx', (d) => d['x0'])
       .attr('cy', (d) => d['y0'])
       .attr('r', (d) => {
-        return 2 * this.radiusScale!(d[stat]);
+        return this.radiusScale!(d[stat]);
       })
       .attr(
         'fill',
@@ -139,11 +141,12 @@ export class BeeswarmChartComponent {
 
     svg
       .append('g')
-      .attr('transform', `translate(0, ${this.CHART_HEIGTH - 40})`)
+      .attr('id', 'x-axis')
+      .attr('transform', `translate(0, ${this.DEFAULT_CHART_HEIGTH - 40})`)
       .call(d3.axisBottom(this.xScale).ticks(10))
       .attr('font-size', '16px')
       .append('text')
-      .attr('x', this.CHART_WIDTH / 2)
+      .attr('x', this.DEFAULT_CHART_WIDTH / 2)
       .attr('y', 40)
       .attr('fill', '#000')
       .attr('font-size', '16px')
@@ -159,6 +162,19 @@ export class BeeswarmChartComponent {
     switch (this.viewSelected) {
       case 'nationality':
         const grouped = d3.group(this.currentData, (d) => d.nationality);
+        d3.select('#beeswarm-chart')
+          .attr('height', this.VIEW_BY_NATION_CHART_HEIGTH)
+          .attr('width', this.VIEW_BY_NATION_CHART_WIDTH);
+
+        d3.select('#x-axis').attr(
+          'transform',
+          `translate(0, ${this.VIEW_BY_NATION_CHART_HEIGTH - 40})`
+        );
+
+        this.yScale = d3
+          .scalePoint()
+          .domain(this.chartStyleSrv.color.domain())
+          .range([200, this.VIEW_BY_NATION_CHART_HEIGTH - 100]);
 
         grouped.forEach((players, nationality) => {
           const y = this.yScale ? this.yScale(nationality)! : 0;
@@ -174,7 +190,7 @@ export class BeeswarmChartComponent {
             .force('y', d3.forceY(() => y).strength(1))
             .force(
               'collide',
-              d3.forceCollide((d) => this.radiusScale!(d.points) * 2)
+              d3.forceCollide((d) => this.radiusScale!(d.points))
             )
             .alphaDecay(0.05)
             .stop();
@@ -199,6 +215,19 @@ export class BeeswarmChartComponent {
         break;
 
       default:
+        d3.select('#beeswarm-chart')
+          .attr('height', this.DEFAULT_CHART_HEIGTH)
+          .attr('width', this.DEFAULT_CHART_WIDTH);
+
+        d3.select('#x-axis').attr(
+          'transform',
+          `translate(0, ${this.DEFAULT_CHART_HEIGTH - 40})`
+        );
+
+        this.yScale = d3
+          .scalePoint()
+          .domain(this.chartStyleSrv.color.domain())
+          .range([200, this.DEFAULT_CHART_HEIGTH - 100]);
         d3.selectAll<SVGCircleElement, Player>('.beeswarm-circle')
           .transition()
           .duration(dur)
@@ -239,7 +268,10 @@ export class BeeswarmChartComponent {
       .select('#beeswarm-chart')
       .append('g')
       .attr('id', 'legend-container')
-      .attr('transform', `translate(${10}, ${this.CHART_HEIGTH / 2 - 80})`);
+      .attr(
+        'transform',
+        `translate(${10}, ${this.DEFAULT_CHART_HEIGTH / 2 - 80})`
+      );
 
     const legendData = colorScale.domain();
 
