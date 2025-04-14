@@ -22,7 +22,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
   styleUrl: './beeswarm-chart.component.css',
 })
 export class BeeswarmChartComponent {
-  DEFAULT_CHART_HEIGTH: number = window.innerHeight - 100; // Default to 800 if window height is unavailable
+  DEFAULT_CHART_HEIGTH: number = window.innerHeight - 100;
   DEFAULT_CHART_WIDTH: number = window.innerWidth - 100;
   VIEW_BY_NATION_CHART_HEIGTH: number = 1400;
   VIEW_BY_NATION_CHART_WIDTH: number = window.innerWidth - 100;
@@ -48,10 +48,12 @@ export class BeeswarmChartComponent {
     d3.select('svg').remove();
     d3.selectAll('.tooltip').remove();
 
+    const maxRadius =
+      Math.min(this.DEFAULT_CHART_HEIGTH, this.DEFAULT_CHART_WIDTH) * 0.04;
     this.radiusScale = d3
       .scaleSqrt()
       .domain([0, d3.max(this.currentData, (d) => d[stat]) || 1])
-      .range([5, 35]);
+      .range([5, maxRadius]);
 
     this.xScale = d3
       .scaleLinear()
