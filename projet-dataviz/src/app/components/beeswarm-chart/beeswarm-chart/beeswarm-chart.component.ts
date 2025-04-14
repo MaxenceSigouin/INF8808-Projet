@@ -248,7 +248,14 @@ export class BeeswarmChartComponent {
             return player;
           }
         });
+
         const groupedByPosition = d3.group(this.currentData, (d) => d.position);
+
+        const orderedPositions = ['F', 'D', 'G']; // Define the desired order
+        const sortedGroupedByPosition = new Map(
+          orderedPositions.map((key) => [key, groupedByPosition.get(key) || []])
+        );
+
         d3.select('#beeswarm-chart')
           .attr('height', this.DEFAULT_CHART_HEIGTH)
           .attr('width', this.DEFAULT_CHART_WIDTH);
@@ -260,10 +267,10 @@ export class BeeswarmChartComponent {
 
         this.yScale = d3
           .scalePoint()
-          .domain(Array.from(groupedByPosition.keys()))
+          .domain(Array.from(sortedGroupedByPosition.keys()))
           .range([300, this.DEFAULT_CHART_HEIGTH - 100]);
 
-        groupedByPosition.forEach((players, position) => {
+        sortedGroupedByPosition.forEach((players, position) => {
           const y = this.yScale ? this.yScale(position)! : 0;
 
           const sim = d3
@@ -310,7 +317,7 @@ export class BeeswarmChartComponent {
           .attr('stroke-dasharray', '4')
           .attr('stroke-width', 1);
 
-        groupedByPosition.forEach((_, position) => {
+        sortedGroupedByPosition.forEach((_, position) => {
           const y = this.yScale ? this.yScale(position)! : 0;
 
           // Add group label
