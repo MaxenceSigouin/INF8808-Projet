@@ -12,11 +12,15 @@ import * as d3 from 'd3';
   styleUrl: './heatmap.component.css'
 })
 export class HeatmapComponent {
-  DEFAULT_CHART_HEIGTH: number = window.innerHeight - 100; // Default to 800 if window height is unavailable
+  DEFAULT_CHART_HEIGHT: number = window.innerHeight - 100; // Default to 800 if window height is unavailable
   DEFAULT_CHART_WIDTH: number = window.innerWidth - 320;
 
-  periodStart: number = 2010;
-  periodEnd: number = 2019;
+  xScale = d3.scaleBand();
+  yScale = d3.scaleBand();
+  colorScale = d3.scaleSequential(d3.interpolateBlues);
+
+  periodStart: number = 2000;
+  periodEnd: number = 2009;
   rankStart: number = 1;
   rankEnd: number = 60;
   currentData: HeatmapPlayerClass[] = [];
@@ -87,15 +91,36 @@ export class HeatmapComponent {
     this.currentData = fullData;
   }
 
+  updateXScale() {
+   const years: string[] = [];
+   for (let i = this.periodStart; i <= this.periodEnd; i++) {
+     years.push(String(i));
+   }
+   this.xScale.domain(years);
+   this.xScale.range([0, this.DEFAULT_CHART_WIDTH]);
+  }
+
+  updateYScale() {
+    const ranges: string[] = [];
+    for (const pointClass of this.pointClasses) {
+      ranges.push(String(pointClass));
+    }
+    this.yScale.domain(ranges);
+    this.yScale.range([0, this.DEFAULT_CHART_HEIGHT])
+  }
+
   createHeatmap() {
     d3.select('svg').remove();
 
-    console.log(this.currentData);
+    this.colorScale.domain([0, d3.max(this.currentData, d => d.amount) as number]);
+    this.updateXScale();
+    this.updateYScale();
+
     const svg = d3
       .select('#heatmap-container')
       .append('svg')
       .attr('id', 'heatmap')
-      .attr('height', this.DEFAULT_CHART_HEIGTH)
+      .attr('height', this.DEFAULT_CHART_HEIGHT)
       .attr('width', this.DEFAULT_CHART_WIDTH);
 
     svg
@@ -104,6 +129,11 @@ export class HeatmapComponent {
       .enter()
       .append('g')
       .append('rect')
-      .attr('class', 'cell');
+      .attr('class', 'cell')
+      .attr('x', (d) => { return this.xScale(String(d.year)) || 0})
+      .attr('width', this.xScale.bandwidth())
+      .attr('y', (d) => { return this.yScale(String(d.pointsRange)) || 0 })
+      .attr('height', this.yScale.bandwidth())
+      .style('fill', (d) => { return this.colorScale(d.amount) })
   }
 }
