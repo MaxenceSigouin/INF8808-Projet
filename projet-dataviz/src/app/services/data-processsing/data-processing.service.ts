@@ -7,7 +7,9 @@ import { Player } from '../../interfaces/Player';
 export class DataProcessingService {
   private csvData: d3.DSVRowArray<string> | undefined;
   constructor() {
-    this.loadCSVData();
+    if (!this.csvData) {
+      this.loadCSVData();
+    }
   }
   private loadCSVData(): Promise<void> {
     return d3.csv('assets/nhldraft.csv').then((data) => {
