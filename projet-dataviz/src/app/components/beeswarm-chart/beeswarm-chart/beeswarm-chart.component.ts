@@ -23,9 +23,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 })
 export class BeeswarmChartComponent {
   DEFAULT_CHART_HEIGTH: number = window.innerHeight - 100;
-  DEFAULT_CHART_WIDTH: number = window.innerWidth - 100;
+  DEFAULT_CHART_WIDTH: number = window.innerWidth - 320;
   VIEW_BY_NATION_CHART_HEIGTH: number = 1400;
-  VIEW_BY_NATION_CHART_WIDTH: number = window.innerWidth - 100;
+  VIEW_BY_NATION_CHART_WIDTH: number = window.innerWidth - 320;
   viewSelected: string = 'default';
   xScale: d3.ScaleLinear<number, number> | undefined;
   yScale: d3.ScalePoint<string> | undefined;
