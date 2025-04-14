@@ -1,5 +1,5 @@
 export interface HeatmapPlayerClass {
-  pointsRange: number;
+  pointsRange: number[];
   year: number;
   amount: number
 }

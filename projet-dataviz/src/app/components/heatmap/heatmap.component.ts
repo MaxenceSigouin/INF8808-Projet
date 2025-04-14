@@ -34,10 +34,15 @@ export class HeatmapComponent {
   }
 
   updateHeatmap() {
+    this.updateData();
+    // this.createBeeswarmChart();
+    // this.transitionView();
+  }
+
+  updateData() {
     this.dataSrv.getDataAsPlayer().then((allData: Player[]) => {
       const data = allData.filter((d) => d.year >= this.periodStart && d.year <= this.periodEnd && d.overall_pick >= this.rankStart && d.overall_pick <= this.rankEnd);
       // this.currentData = data;
-      console.log(data);
 
       // Get points categories for y axis
       this.maxPoints = d3.max(data, d => d.points) || 0;
@@ -51,11 +56,28 @@ export class HeatmapComponent {
         }
       }
 
-      console.log(this.pointClasses);
+      const groupedData = d3.flatRollup(data, v => v.length, d => d.year, d => {
+        let currentPointClass = [0, 0];
+        for (const pointClass of this.pointClasses) {
+          if (d.points >= pointClass[0] && d.points <= pointClass[1]) {
+            currentPointClass = pointClass;
+          }
+        }
+        return currentPointClass;
+      }).map(d => {
+        return { year: d[0], pointRange: d[1], amount: d[2] }
+      });
 
-      // this.createBeeswarmChart();
-      // this.transitionView();
+      const fullData = []
+      for (const pointRange of this.pointClasses) {
+        for (let i = this.periodStart; i <= this.periodEnd; i++) {
+          const count = groupedData.find(d => d.year == i && d.pointRange == pointRange)
+          if (count !== undefined) fullData.push({ pointsRange: pointRange, year: i, amount: count.amount })
+          else fullData.push({ pointsRange: pointRange, year: i, amount: 0 })
+        }
+      }
+      console.log(fullData);
+      this.currentData = fullData;
     });
   }
-
 }
