@@ -47,7 +47,18 @@ export class BeeswarmChartComponent {
   createBeeswarmChart(stat: keyof Player = 'points') {
     d3.select('svg').remove();
     d3.selectAll('.tooltip').remove();
-
+    d3.selectAll('.chart-title').remove();
+    const title = d3
+      .select('#beeswarm-container')
+      .append('div')
+      .attr('class', 'chart-title')
+      .style('text-align', 'center')
+      .style('font-size', '24px')
+      .style('font-weight', 'bold')
+      .style('margin-bottom', '10px')
+      .text(
+        'Behind the Draft: How NHL Players Performed After Being Selected (as of 2022)'
+      );
     const maxRadius =
       Math.min(this.DEFAULT_CHART_HEIGTH, this.DEFAULT_CHART_WIDTH) * 0.04;
     this.radiusScale = d3
