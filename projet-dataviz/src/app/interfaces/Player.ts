@@ -10,5 +10,6 @@ export interface Player extends SimulationNodeDatum {
   games_played: number;
   position: string;
   year: number;
+  specificNationality: string;
   [key: string]: any;
 }

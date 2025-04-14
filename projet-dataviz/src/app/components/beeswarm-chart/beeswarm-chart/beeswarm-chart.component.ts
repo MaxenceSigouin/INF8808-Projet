@@ -142,7 +142,7 @@ export class BeeswarmChartComponent {
         tooltip.transition().duration(200).style('opacity', 1);
         tooltip
           .html(
-            `<strong>${d.player}</strong><br/>
+            `<strong>${d.player} (${d.specificNationality})</strong><br/>
             Rang: ${d.overall_pick}<br/>
             Points: ${d.points}<br/>
             Buts: ${d.goals}<br/>
@@ -409,6 +409,7 @@ export class BeeswarmChartComponent {
       const data = allData.filter((d) => d.year === year);
 
       data.forEach((d) => {
+        d.specificNationality = d.nationality;
         if (!this.chartStyleSrv.color.domain().includes(d.nationality)) {
           d.nationality = 'Others';
         }

@@ -43,6 +43,7 @@ export class DataProcessingService {
           games_played: +typedRow['games_played'],
           position: typedRow['position'] || '',
           year: +typedRow['year'],
+          specificNationality: '',
           // Optionally add other fields
         };
       }) || []
