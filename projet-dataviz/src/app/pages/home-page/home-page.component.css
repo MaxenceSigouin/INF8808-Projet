@@ -1,8 +1,8 @@
 .homepage {
     padding: 2rem;
     text-align: center;
-    background-color: #f9fafc;
-    color: #2c3e50;
+    background-color: white;
+    color: #444;
   }
   
   .hero {
@@ -21,7 +21,7 @@
   
   .hero button {
     padding: 0.75rem 1.5rem;
-    background-color: #1abc9c;
+    background-color: #444;
     border: none;
     color: white;
     font-weight: bold;
@@ -33,7 +33,7 @@
   }
   
   .hero button:hover {
-    background-color: #16a085;
+    background-color: #777;
   }
   
   .features {
@@ -44,7 +44,7 @@
   }
   
   .feature-card {
-    background-color: white;
+    background-color: #f9f9f9;
     border-radius: 8px;
     padding: 1.5rem;
     width: 250px;
