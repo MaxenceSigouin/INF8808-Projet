@@ -34,6 +34,9 @@ export class BeeswarmChartComponent {
   draftYears: number[] = [];
   draftYearSelected: number = 2010;
 
+  statsToShow: string[] = ['points', 'goals', 'assists', 'games_played'];
+  statsSelected: string = 'points';
+
   constructor(
     private dataSrv: DataProcessingService,
     private chartStyleSrv: ChartStyleManagerService
@@ -41,13 +44,14 @@ export class BeeswarmChartComponent {
 
   ngAfterViewInit() {
     this.updateDraftYearsAvailable();
-    this.updateBeeswarmChart(this.draftYearSelected);
+    this.updateBeeswarmChart(this.draftYearSelected, this.statsSelected);
   }
 
   createBeeswarmChart(stat: keyof Player = 'points') {
-    d3.select('svg').remove();
-    d3.selectAll('.tooltip').remove();
-    d3.selectAll('.chart-title').remove();
+    d3.select('#beeswarm-chart').remove(); // Remove the SVG
+    d3.selectAll('.tooltip').remove(); // Remove tooltips
+    d3.selectAll('.chart-title').remove(); // Remove the title
+    d3.select('#legend-container').remove(); // Remove the legend
     const title = d3
       .select('#beeswarm-container')
       .append('div')
@@ -181,10 +185,10 @@ export class BeeswarmChartComponent {
       .attr('stroke-width', 1);
 
     this.createLegend();
-    this.transitionView();
+    this.transitionView(stat);
   }
 
-  transitionView() {
+  transitionView(stat: keyof Player) {
     const dur = 1000;
     d3.selectAll('.group-label').remove();
     switch (this.viewSelected) {
@@ -218,7 +222,7 @@ export class BeeswarmChartComponent {
             .force('y', d3.forceY(() => y).strength(1))
             .force(
               'collide',
-              d3.forceCollide((d) => this.radiusScale!(d.points))
+              d3.forceCollide((d) => this.radiusScale!(d[stat]))
             )
             .alphaDecay(0.05)
             .stop();
@@ -297,7 +301,7 @@ export class BeeswarmChartComponent {
             .force('y', d3.forceY(() => y).strength(1))
             .force(
               'collide',
-              d3.forceCollide((d) => this.radiusScale!(d.points))
+              d3.forceCollide((d) => this.radiusScale!(d[stat]))
             )
             .alphaDecay(0.05)
             .stop();
@@ -400,7 +404,7 @@ export class BeeswarmChartComponent {
     });
   }
 
-  updateBeeswarmChart(year: number) {
+  updateBeeswarmChart(year: number, stat: keyof Player) {
     this.dataSrv.getDataAsPlayer().then((allData: Player[]) => {
       const data = allData.filter((d) => d.year === year);
 
@@ -411,8 +415,17 @@ export class BeeswarmChartComponent {
       });
 
       this.currentData = data;
-      this.createBeeswarmChart();
-      this.transitionView();
+
+      // Recalculate radiusScale based on the selected statistic
+      const maxRadius =
+        Math.min(this.DEFAULT_CHART_HEIGTH, this.DEFAULT_CHART_WIDTH) * 0.04;
+      this.radiusScale = d3
+        .scaleSqrt()
+        .domain([0, d3.max(this.currentData, (d) => d[stat]) || 1])
+        .range([5, maxRadius]);
+
+      this.createBeeswarmChart(stat);
+      this.transitionView(stat);
     });
   }
 
