@@ -1,14 +1,51 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http'
 import * as d3 from 'd3';
-
+import { Player } from '../../interfaces/Player';
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class DataProcessingService {
+  private csvData: d3.DSVRowArray<string> | undefined;
+  constructor() {
+    this.loadCSVData();
+  }
+  private loadCSVData(): Promise<void> {
+    return d3.csv('assets/nhldraft.csv').then((data) => {
+      this.csvData = data as d3.DSVRowArray<string>;
+      console.log('CSV data loaded:', this.csvData);
+    });
+  }
+  /**
+   * Get the data from the CSV file
+   * @returns The data from the CSV file
+   */
+  async getData(): Promise<d3.DSVRowArray<string> | undefined> {
+    if (!this.csvData) {
+      await this.loadCSVData();
+    }
+    return this.csvData;
+  }
 
-  constructor(private http: HttpClient) {
-    this.http.get('assets/nhldraft.csv', {responseType: 'text'}).subscribe(data => console.log(data)); // Erreur 404 pcq il cherche dans localhost:4200/assets/nhldraft.csv
-    d3.csv('assets/nhldraft.csv').then(data => console.log(data)); // Erreur 404 pcq il cherche dans localhost:4200/assets/nhldraft.csv
+  async getDataAsPlayer(): Promise<Player[]> {
+    if (!this.csvData) {
+      await this.loadCSVData();
+    }
+    return (
+      this.csvData?.map((row) => {
+        const typedRow = row as unknown as Record<string, string>;
+        return {
+          overall_pick: +typedRow['overall_pick'],
+          nationality: typedRow['nationality'] || 'Others',
+          player: typedRow['player'] || '',
+          goals: +typedRow['goals'],
+          assists: +typedRow['assists'],
+          points: +typedRow['points'],
+          games_played: +typedRow['games_played'],
+          position: typedRow['position'] || '',
+          year: +typedRow['year'],
+          // Optionally add other fields
+        };
+      }) || []
+    );
   }
 }
