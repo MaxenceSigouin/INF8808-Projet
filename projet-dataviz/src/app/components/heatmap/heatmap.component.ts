@@ -12,23 +12,27 @@ import * as d3 from 'd3';
   styleUrl: './heatmap.component.css'
 })
 export class HeatmapComponent {
-  DEFAULT_CHART_HEIGHT: number = window.innerHeight - 100; // Default to 800 if window height is unavailable
+  margin = { top: 40, right: 20, bottom: 90, left: 90 };
+  DEFAULT_CHART_HEIGHT: number = window.innerHeight - 150; // Default to 800 if window height is unavailable
   DEFAULT_CHART_WIDTH: number = window.innerWidth - 320;
+  xScaleHeight: number = this.DEFAULT_CHART_HEIGHT;
+  yScaleWidth: number = this.DEFAULT_CHART_WIDTH;
 
-  xScale = d3.scaleBand();
-  yScale = d3.scaleBand();
+  xScale = d3.scaleBand().padding(0.1);
+  yScale = d3.scaleBand().padding(0.1);
   colorScale = d3.scaleSequential(d3.interpolateBlues);
 
   periodStart: number = 2000;
   periodEnd: number = 2009;
   rankStart: number = 1;
   rankEnd: number = 60;
+  gameThreshold: number = 0;
   currentData: HeatmapPlayerClass[] = [];
 
   minPoints: number = 0;
   maxPoints: number = 0;
   tickSize: number = 0;
-  pointClassesAmount: number = 10;
+  pointClassesAmount: number = 15;
   pointClasses: number[][] = [];
 
  constructor(
@@ -53,7 +57,13 @@ export class HeatmapComponent {
   }
 
   updateData(allData: Player[]) {
-    const data = allData.filter((d) => d.year >= this.periodStart && d.year <= this.periodEnd && d.overall_pick >= this.rankStart && d.overall_pick <= this.rankEnd);
+    const data = allData.filter((d) =>
+      d.year >= this.periodStart &&
+      d.year <= this.periodEnd &&
+      d.overall_pick >= this.rankStart &&
+      d.overall_pick <= this.rankEnd &&
+      d.games_played > this.gameThreshold
+    );
 
     // Get points categories for y axis
     this.maxPoints = d3.max(data, d => d.points) || 0;
@@ -87,7 +97,6 @@ export class HeatmapComponent {
         else fullData.push({ pointsRange: pointRange, year: i, amount: 0 })
       }
     }
-    console.log(fullData);
     this.currentData = fullData;
   }
 
@@ -106,7 +115,7 @@ export class HeatmapComponent {
       ranges.push(String(pointClass));
     }
     this.yScale.domain(ranges);
-    this.yScale.range([0, this.DEFAULT_CHART_HEIGHT])
+    this.yScale.range([this.DEFAULT_CHART_HEIGHT, 0])
   }
 
   createHeatmap() {
@@ -120,8 +129,8 @@ export class HeatmapComponent {
       .select('#heatmap-container')
       .append('svg')
       .attr('id', 'heatmap')
-      .attr('height', this.DEFAULT_CHART_HEIGHT)
-      .attr('width', this.DEFAULT_CHART_WIDTH);
+      .attr('height', this.DEFAULT_CHART_HEIGHT + this.margin.top + this.margin.bottom)
+      .attr('width', this.DEFAULT_CHART_WIDTH + this.margin.left + this.margin.right);
 
     svg
       .selectAll('.cell')
@@ -134,6 +143,18 @@ export class HeatmapComponent {
       .attr('width', this.xScale.bandwidth())
       .attr('y', (d) => { return this.yScale(String(d.pointsRange)) || 0 })
       .attr('height', this.yScale.bandwidth())
-      .style('fill', (d) => { return this.colorScale(d.amount) })
+      .style('fill', (d) => { return this.colorScale(d.amount) });
+
+    svg
+      .append('g')
+      .attr('transform', `translate(0, ${this.xScaleHeight})`)
+      .call(d3.axisBottom(this.xScale))
+      .select('.domain').remove();
+
+    svg
+      .append('g')
+      .attr('transform', `translate(${this.yScaleWidth}, 0)`)
+      .call(d3.axisRight(this.yScale))
+      .select('.domain').remove();
   }
 }
