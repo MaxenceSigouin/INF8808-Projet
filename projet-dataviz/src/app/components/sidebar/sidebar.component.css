@@ -28,3 +28,7 @@
 .sidebar a:hover {
   text-decoration: underline;
 }
+
+li.active-link {
+  font-weight: bold;
+}
