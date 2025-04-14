@@ -29,9 +29,9 @@ export class BarChartComponent implements OnInit {
   };
   private margin = { top: 40, right: 20, bottom: 90, left: 90 };
   private width =
-    window.innerWidth - this.margin.left - this.margin.right - 100; // Adjust dynamically
+    window.innerWidth - this.margin.left - this.margin.right - 320;
   private height =
-    window.innerHeight - this.margin.top - this.margin.bottom - 200; // Adjust dynamically
+    window.innerHeight - this.margin.top - this.margin.bottom - 200;
   selectedCategories: { [key: string]: boolean } = {
     forward: true, // includes LW, C, RW
     defensemen: true, // includes D
