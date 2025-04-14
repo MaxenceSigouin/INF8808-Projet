@@ -153,12 +153,27 @@ export class BeeswarmChartComponent {
       .attr('text-anchor', 'middle')
       .text('Overall Pick');
 
+    svg
+      .selectAll('.x-axis-line')
+      .data(this.xScale ? this.xScale.ticks(10) : [])
+      .enter()
+      .append('line')
+      .attr('class', 'x-axis-line')
+      .attr('x1', (d) => this.xScale!(d))
+      .attr('x2', (d) => this.xScale!(d))
+      .attr('y1', 110)
+      .attr('y2', this.DEFAULT_CHART_HEIGTH - 40)
+      .attr('stroke', '#ccc')
+      .attr('stroke-dasharray', '4')
+      .attr('stroke-width', 1);
+
     this.createLegend();
     this.transitionView();
   }
 
   transitionView() {
     const dur = 1000;
+    d3.selectAll('.group-label').remove();
     switch (this.viewSelected) {
       case 'nationality':
         const grouped = d3.group(this.currentData, (d) => d.nationality);
@@ -209,9 +224,118 @@ export class BeeswarmChartComponent {
           .ease(d3.easeCubicInOut)
           .attr('cx', (d) => d['x1'])
           .attr('cy', (d) => d['y1']);
+
+        d3.select('#beeswarm-container')
+          .selectAll('.x-axis-line')
+          .data(this.xScale?.ticks(10) ?? [])
+          .join('line')
+          .attr('class', 'x-axis-line')
+          .attr('x1', (d) => this.xScale!(d))
+          .attr('x2', (d) => this.xScale!(d))
+          .attr('y1', 110)
+          .attr('y2', this.VIEW_BY_NATION_CHART_HEIGTH - 40)
+          .attr('stroke', '#ccc')
+          .attr('stroke-dasharray', '4')
+          .attr('stroke-width', 1);
         break;
 
       case 'position':
+        this.currentData = this.currentData.map((player) => {
+          if (player.position === 'G' || player.position === 'D') {
+            return player;
+          } else {
+            player.position = 'F';
+            return player;
+          }
+        });
+        const groupedByPosition = d3.group(this.currentData, (d) => d.position);
+        d3.select('#beeswarm-chart')
+          .attr('height', this.DEFAULT_CHART_HEIGTH)
+          .attr('width', this.DEFAULT_CHART_WIDTH);
+
+        d3.select('#x-axis').attr(
+          'transform',
+          `translate(0, ${this.DEFAULT_CHART_HEIGTH - 40})`
+        );
+
+        this.yScale = d3
+          .scalePoint()
+          .domain(Array.from(groupedByPosition.keys()))
+          .range([300, this.DEFAULT_CHART_HEIGTH - 100]);
+
+        groupedByPosition.forEach((players, position) => {
+          const y = this.yScale ? this.yScale(position)! : 0;
+
+          const sim = d3
+            .forceSimulation(players)
+            .force(
+              'x',
+              d3
+                .forceX((d: Player) => this.xScale!(d.overall_pick))
+                .strength(0.5)
+            )
+            .force('y', d3.forceY(() => y).strength(1))
+            .force(
+              'collide',
+              d3.forceCollide((d) => this.radiusScale!(d.points))
+            )
+            .alphaDecay(0.05)
+            .stop();
+
+          for (let i = 0; i < 200; ++i) sim.tick();
+
+          players.forEach((d) => {
+            d['x1'] = d.x!;
+            d['y1'] = d.y!;
+          });
+        });
+
+        d3.selectAll<SVGCircleElement, Player>('.beeswarm-circle')
+          .transition()
+          .duration(dur)
+          .ease(d3.easeCubicInOut)
+          .attr('cx', (d) => d['x1'])
+          .attr('cy', (d) => d['y1']);
+
+        d3.select('#beeswarm-container')
+          .selectAll('.x-axis-line')
+          .data(this.xScale?.ticks(10) ?? [])
+          .join('line')
+          .attr('class', 'x-axis-line')
+          .attr('x1', (d) => this.xScale!(d))
+          .attr('x2', (d) => this.xScale!(d))
+          .attr('y1', 110)
+          .attr('y2', this.VIEW_BY_NATION_CHART_HEIGTH - 40)
+          .attr('stroke', '#ccc')
+          .attr('stroke-dasharray', '4')
+          .attr('stroke-width', 1);
+
+        groupedByPosition.forEach((_, position) => {
+          const y = this.yScale ? this.yScale(position)! : 0;
+
+          // Add group label
+          d3.select('#beeswarm-chart')
+            .append('text')
+            .attr('class', 'group-label')
+            .attr('x', this.DEFAULT_CHART_WIDTH)
+            .attr('y', y + 5)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '20px')
+            .attr('fill', '#BOBOBO')
+            .text(() => {
+              switch (position) {
+                case 'F':
+                  return 'Forward';
+                case 'D':
+                  return 'Defense';
+                case 'G':
+                  return 'Goalie';
+                default:
+                  return position;
+              }
+            });
+        });
+
         break;
 
       default:
@@ -234,6 +358,18 @@ export class BeeswarmChartComponent {
           .ease(d3.easeCubicInOut)
           .attr('cx', (d) => d['x0'])
           .attr('cy', (d) => d['y0']);
+        d3.select('#beeswarm-container')
+          .selectAll('.x-axis-line')
+          .data(this.xScale?.ticks(10) ?? [])
+          .join('line')
+          .attr('class', 'x-axis-line')
+          .attr('x1', (d) => this.xScale!(d))
+          .attr('x2', (d) => this.xScale!(d))
+          .attr('y1', 110)
+          .attr('y2', this.DEFAULT_CHART_HEIGTH - 40)
+          .attr('stroke', '#ccc')
+          .attr('stroke-dasharray', '4')
+          .attr('stroke-width', 1);
         break;
     }
   }
