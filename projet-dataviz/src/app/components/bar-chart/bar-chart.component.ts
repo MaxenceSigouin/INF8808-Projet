@@ -1,9 +1,21 @@
 import { Component, OnInit } from '@angular/core';
 import * as d3 from 'd3';
 import { ChartStyleManagerService } from '../../services/chart-style-manager/chart-style-manager.service';
-
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 @Component({
   selector: 'app-bar-chart',
+  imports: [
+    MatButtonToggleModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
+  ],
   templateUrl: './bar-chart.component.html',
   styleUrls: ['./bar-chart.component.css'],
 })
@@ -12,7 +24,11 @@ export class BarChartComponent implements OnInit {
   private data: any[] = [];
   private svg: any;
   private predefinedNationalities: string[] = [];
-
+  positionsControl = new FormControl<string[]>([
+    'forward',
+    'defensemen',
+    'goalie',
+  ]);
   private margin = { top: 40, right: 20, bottom: 90, left: 90 };
   private width =
     window.innerWidth - this.margin.left - this.margin.right - 320;
@@ -28,7 +44,7 @@ export class BarChartComponent implements OnInit {
     defensemen: ['D'],
     goalie: ['G'],
   };
-
+  positionSelected: string = 'forward';
   constructor(private chartStyleSrv: ChartStyleManagerService) {}
 
   ngOnInit(): void {
@@ -68,14 +84,12 @@ export class BarChartComponent implements OnInit {
 
   updateFilteredData(): void {
     let selectedPositions: string[] = [];
-    for (let cat in this.selectedCategories) {
-      if (this.selectedCategories[cat]) {
-        selectedPositions.push(...this.positionMapping[cat]);
-      }
-    }
+    this.positionsControl.value?.forEach((postion: string) => {
+      selectedPositions.push(...this.positionMapping[postion]);
+    });
 
-    let filteredData = this.originalData.filter((d) =>
-      selectedPositions.includes(d['position'])
+    let filteredData = this.originalData.filter(
+      (d) => selectedPositions.includes(d['position'] as string) ?? false
     );
     const processedData = this.preprocessData(filteredData);
     this.data = this.countYAxis(processedData);
@@ -87,6 +101,7 @@ export class BarChartComponent implements OnInit {
   // HTML Button Event Handler
   toggleCategory(cat: string): void {
     this.selectedCategories[cat] = !this.selectedCategories[cat];
+    const string = this.positionsControl.value;
     this.updateFilteredData();
   }
 
