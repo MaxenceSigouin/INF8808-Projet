@@ -22,10 +22,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
   styleUrl: './beeswarm-chart.component.css',
 })
 export class BeeswarmChartComponent {
-  DEFAULT_CHART_HEIGTH: number = window.innerHeight - 100; // Default to 800 if window height is unavailable
-  DEFAULT_CHART_WIDTH: number = window.innerWidth - 100;
+  DEFAULT_CHART_HEIGTH: number = window.innerHeight - 100;
+  DEFAULT_CHART_WIDTH: number = window.innerWidth - 320;
   VIEW_BY_NATION_CHART_HEIGTH: number = 1400;
-  VIEW_BY_NATION_CHART_WIDTH: number = window.innerWidth - 100;
+  VIEW_BY_NATION_CHART_WIDTH: number = window.innerWidth - 320;
   viewSelected: string = 'default';
   xScale: d3.ScaleLinear<number, number> | undefined;
   yScale: d3.ScalePoint<string> | undefined;
@@ -34,6 +34,9 @@ export class BeeswarmChartComponent {
   draftYears: number[] = [];
   draftYearSelected: number = 2010;
 
+  statsToShow: string[] = ['points', 'goals', 'assists', 'games_played'];
+  statsSelected: string = 'points';
+
   constructor(
     private dataSrv: DataProcessingService,
     private chartStyleSrv: ChartStyleManagerService
@@ -41,17 +44,31 @@ export class BeeswarmChartComponent {
 
   ngAfterViewInit() {
     this.updateDraftYearsAvailable();
-    this.updateBeeswarmChart(this.draftYearSelected);
+    this.updateBeeswarmChart(this.draftYearSelected, this.statsSelected);
   }
 
   createBeeswarmChart(stat: keyof Player = 'points') {
-    d3.select('svg').remove();
-    d3.selectAll('.tooltip').remove();
-
+    d3.select('#beeswarm-chart').remove(); // Remove the SVG
+    d3.selectAll('.tooltip').remove(); // Remove tooltips
+    d3.selectAll('.chart-title').remove(); // Remove the title
+    d3.select('#legend-container').remove(); // Remove the legend
+    const title = d3
+      .select('#beeswarm-container')
+      .append('div')
+      .attr('class', 'chart-title')
+      .style('text-align', 'center')
+      .style('font-size', '24px')
+      .style('font-weight', 'bold')
+      .style('margin-bottom', '10px')
+      .text(
+        'Behind the Draft: How NHL Players Performed After Being Selected (as of 2022)'
+      );
+    const maxRadius =
+      Math.min(this.DEFAULT_CHART_HEIGTH, this.DEFAULT_CHART_WIDTH) * 0.04;
     this.radiusScale = d3
       .scaleSqrt()
       .domain([0, d3.max(this.currentData, (d) => d[stat]) || 1])
-      .range([5, 35]);
+      .range([5, maxRadius]);
 
     this.xScale = d3
       .scaleLinear()
@@ -125,7 +142,7 @@ export class BeeswarmChartComponent {
         tooltip.transition().duration(200).style('opacity', 1);
         tooltip
           .html(
-            `<strong>${d.player}</strong><br/>
+            `<strong>${d.player} (${d.specificNationality})</strong><br/>
             Rang: ${d.overall_pick}<br/>
             Points: ${d.points}<br/>
             Buts: ${d.goals}<br/>
@@ -153,12 +170,27 @@ export class BeeswarmChartComponent {
       .attr('text-anchor', 'middle')
       .text('Overall Pick');
 
+    svg
+      .selectAll('.x-axis-line')
+      .data(this.xScale ? this.xScale.ticks(10) : [])
+      .enter()
+      .append('line')
+      .attr('class', 'x-axis-line')
+      .attr('x1', (d) => this.xScale!(d))
+      .attr('x2', (d) => this.xScale!(d))
+      .attr('y1', 110)
+      .attr('y2', this.DEFAULT_CHART_HEIGTH - 40)
+      .attr('stroke', '#ccc')
+      .attr('stroke-dasharray', '4')
+      .attr('stroke-width', 1);
+
     this.createLegend();
-    this.transitionView();
+    this.transitionView(stat);
   }
 
-  transitionView() {
+  transitionView(stat: keyof Player) {
     const dur = 1000;
+    d3.selectAll('.group-label').remove();
     switch (this.viewSelected) {
       case 'nationality':
         const grouped = d3.group(this.currentData, (d) => d.nationality);
@@ -190,7 +222,7 @@ export class BeeswarmChartComponent {
             .force('y', d3.forceY(() => y).strength(1))
             .force(
               'collide',
-              d3.forceCollide((d) => this.radiusScale!(d.points))
+              d3.forceCollide((d) => this.radiusScale!(d[stat]))
             )
             .alphaDecay(0.05)
             .stop();
@@ -209,9 +241,125 @@ export class BeeswarmChartComponent {
           .ease(d3.easeCubicInOut)
           .attr('cx', (d) => d['x1'])
           .attr('cy', (d) => d['y1']);
+
+        d3.select('#beeswarm-container')
+          .selectAll('.x-axis-line')
+          .data(this.xScale?.ticks(10) ?? [])
+          .join('line')
+          .attr('class', 'x-axis-line')
+          .attr('x1', (d) => this.xScale!(d))
+          .attr('x2', (d) => this.xScale!(d))
+          .attr('y1', 110)
+          .attr('y2', this.VIEW_BY_NATION_CHART_HEIGTH - 40)
+          .attr('stroke', '#ccc')
+          .attr('stroke-dasharray', '4')
+          .attr('stroke-width', 1);
         break;
 
       case 'position':
+        this.currentData = this.currentData.map((player) => {
+          if (player.position === 'G' || player.position === 'D') {
+            return player;
+          } else {
+            player.position = 'F';
+            return player;
+          }
+        });
+
+        const groupedByPosition = d3.group(this.currentData, (d) => d.position);
+
+        const orderedPositions = ['F', 'D', 'G']; // Define the desired order
+        const sortedGroupedByPosition = new Map(
+          orderedPositions.map((key) => [key, groupedByPosition.get(key) || []])
+        );
+
+        d3.select('#beeswarm-chart')
+          .attr('height', this.DEFAULT_CHART_HEIGTH)
+          .attr('width', this.DEFAULT_CHART_WIDTH);
+
+        d3.select('#x-axis').attr(
+          'transform',
+          `translate(0, ${this.DEFAULT_CHART_HEIGTH - 40})`
+        );
+
+        this.yScale = d3
+          .scalePoint()
+          .domain(Array.from(sortedGroupedByPosition.keys()))
+          .range([300, this.DEFAULT_CHART_HEIGTH - 100]);
+
+        sortedGroupedByPosition.forEach((players, position) => {
+          const y = this.yScale ? this.yScale(position)! : 0;
+
+          const sim = d3
+            .forceSimulation(players)
+            .force(
+              'x',
+              d3
+                .forceX((d: Player) => this.xScale!(d.overall_pick))
+                .strength(0.5)
+            )
+            .force('y', d3.forceY(() => y).strength(1))
+            .force(
+              'collide',
+              d3.forceCollide((d) => this.radiusScale!(d[stat]))
+            )
+            .alphaDecay(0.05)
+            .stop();
+
+          for (let i = 0; i < 200; ++i) sim.tick();
+
+          players.forEach((d) => {
+            d['x1'] = d.x!;
+            d['y1'] = d.y!;
+          });
+        });
+
+        d3.selectAll<SVGCircleElement, Player>('.beeswarm-circle')
+          .transition()
+          .duration(dur)
+          .ease(d3.easeCubicInOut)
+          .attr('cx', (d) => d['x1'])
+          .attr('cy', (d) => d['y1']);
+
+        d3.select('#beeswarm-container')
+          .selectAll('.x-axis-line')
+          .data(this.xScale?.ticks(10) ?? [])
+          .join('line')
+          .attr('class', 'x-axis-line')
+          .attr('x1', (d) => this.xScale!(d))
+          .attr('x2', (d) => this.xScale!(d))
+          .attr('y1', 110)
+          .attr('y2', this.VIEW_BY_NATION_CHART_HEIGTH - 40)
+          .attr('stroke', '#ccc')
+          .attr('stroke-dasharray', '4')
+          .attr('stroke-width', 1);
+
+        sortedGroupedByPosition.forEach((_, position) => {
+          const y = this.yScale ? this.yScale(position)! : 0;
+
+          // Add group label
+          d3.select('#beeswarm-chart')
+            .append('text')
+            .attr('class', 'group-label')
+            .attr('x', this.DEFAULT_CHART_WIDTH)
+            .attr('y', y + 5)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '20px')
+            .attr('fill', '#BOBOBO')
+            .text(() => {
+              switch (position) {
+                case 'F':
+                  return 'Forward';
+                case 'D':
+                  return 'Defense';
+                case 'G':
+                  return 'Goalie';
+                default:
+                  return position;
+              }
+            });
+        });
+
         break;
 
       default:
@@ -234,6 +382,18 @@ export class BeeswarmChartComponent {
           .ease(d3.easeCubicInOut)
           .attr('cx', (d) => d['x0'])
           .attr('cy', (d) => d['y0']);
+        d3.select('#beeswarm-container')
+          .selectAll('.x-axis-line')
+          .data(this.xScale?.ticks(10) ?? [])
+          .join('line')
+          .attr('class', 'x-axis-line')
+          .attr('x1', (d) => this.xScale!(d))
+          .attr('x2', (d) => this.xScale!(d))
+          .attr('y1', 110)
+          .attr('y2', this.DEFAULT_CHART_HEIGTH - 40)
+          .attr('stroke', '#ccc')
+          .attr('stroke-dasharray', '4')
+          .attr('stroke-width', 1);
         break;
     }
   }
@@ -244,19 +404,29 @@ export class BeeswarmChartComponent {
     });
   }
 
-  updateBeeswarmChart(year: number) {
+  updateBeeswarmChart(year: number, stat: keyof Player) {
     this.dataSrv.getDataAsPlayer().then((allData: Player[]) => {
       const data = allData.filter((d) => d.year === year);
 
       data.forEach((d) => {
+        d.specificNationality = d.nationality;
         if (!this.chartStyleSrv.color.domain().includes(d.nationality)) {
           d.nationality = 'Others';
         }
       });
 
       this.currentData = data;
-      this.createBeeswarmChart();
-      this.transitionView();
+
+      // Recalculate radiusScale based on the selected statistic
+      const maxRadius =
+        Math.min(this.DEFAULT_CHART_HEIGTH, this.DEFAULT_CHART_WIDTH) * 0.04;
+      this.radiusScale = d3
+        .scaleSqrt()
+        .domain([0, d3.max(this.currentData, (d) => d[stat]) || 1])
+        .range([5, maxRadius]);
+
+      this.createBeeswarmChart(stat);
+      this.transitionView(stat);
     });
   }
 
