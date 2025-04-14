@@ -27,9 +27,11 @@ export class BarChartComponent implements OnInit {
     RU: 'Russia',
     Others: 'Others',
   };
-  private margin = { top: 40, right: 20, bottom: 70, left: 60 };
-  private width = 800 - this.margin.left - this.margin.right;
-  private height = 500 - this.margin.top - this.margin.bottom;
+  private margin = { top: 40, right: 20, bottom: 90, left: 90 };
+  private width =
+    window.innerWidth - this.margin.left - this.margin.right - 100; // Adjust dynamically
+  private height =
+    window.innerHeight - this.margin.top - this.margin.bottom - 200; // Adjust dynamically
   selectedCategories: { [key: string]: boolean } = {
     forward: true, // includes LW, C, RW
     defensemen: true, // includes D
@@ -56,10 +58,25 @@ export class BarChartComponent implements OnInit {
 
         this.createSvg();
         this.updateFilteredData();
+
+        // Add a resize listener
+        window.addEventListener('resize', () => this.onResize());
       })
       .catch((error) => {
         console.error('Error loading CSV:', error);
       });
+  }
+
+  private onResize(): void {
+    // Recalculate dimensions
+    this.width = window.innerWidth - this.margin.left - this.margin.right - 100;
+    this.height =
+      window.innerHeight - this.margin.top - this.margin.bottom - 200;
+
+    // Remove the existing SVG and redraw the chart
+    d3.select('figure#barChart').select('svg').remove();
+    this.createSvg();
+    this.updateFilteredData();
   }
 
   updateFilteredData(): void {
@@ -184,6 +201,8 @@ export class BarChartComponent implements OnInit {
       .data((d: any) => d)
       .enter()
       .append('rect')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 1)
       .attr('x', (d: any) => x(d.data.decade)!)
       .attr('y', (d: any) => y(d[1]))
       .attr('height', (d: any) => y(d[0]) - y(d[1]))
@@ -225,9 +244,14 @@ export class BarChartComponent implements OnInit {
       .call(d3.axisBottom(x))
       .selectAll('text')
       .attr('transform', 'translate(-10,0)rotate(-45)')
-      .style('text-anchor', 'end');
+      .style('text-anchor', 'end')
+      .style('font-size', '14px');
 
-    this.svg.append('g').call(d3.axisLeft(y));
+    this.svg
+      .append('g')
+      .call(d3.axisLeft(y))
+      .selectAll('text')
+      .style('font-size', '14px');
 
     this.addLabels();
 
@@ -270,9 +294,9 @@ export class BarChartComponent implements OnInit {
     this.svg
       .append('text')
       .attr('x', this.width / 2)
-      .attr('y', this.height + this.margin.bottom - 10)
+      .attr('y', this.height + this.margin.bottom)
       .attr('text-anchor', 'middle')
-      .style('font-size', '14px')
+      .style('font-size', '18px')
       .text('Decade');
 
     // Y-axis label.
@@ -282,7 +306,7 @@ export class BarChartComponent implements OnInit {
       .attr('x', -this.height / 2)
       .attr('y', -this.margin.left + 15)
       .attr('text-anchor', 'middle')
-      .style('font-size', '14px')
+      .style('font-size', '18px')
       .text('Number of Points');
   }
 }
