@@ -11,22 +11,8 @@ export class BarChartComponent implements OnInit {
   private originalData: any[] = [];
   private data: any[] = [];
   private svg: any;
-  private predefinedNationalities: string[] = [
-    'CA',
-    'US',
-    'FI',
-    'SE',
-    'RU',
-    'Others',
-  ];
-  private nationalityNames: Record<string, string> = {
-    CA: 'Canada',
-    US: 'United States',
-    FI: 'Finland',
-    SE: 'Sweden',
-    RU: 'Russia',
-    Others: 'Others',
-  };
+  private predefinedNationalities: string[] = [];
+
   private margin = { top: 40, right: 20, bottom: 90, left: 90 };
   private width =
     window.innerWidth - this.margin.left - this.margin.right - 320;
@@ -46,6 +32,7 @@ export class BarChartComponent implements OnInit {
   constructor(private chartStyleSrv: ChartStyleManagerService) {}
 
   ngOnInit(): void {
+    this.predefinedNationalities = this.chartStyleSrv.color.domain();
     d3.csv('/assets/nhldraft.csv')
       .then((data) => {
         data.forEach((d: any) => {
@@ -288,7 +275,7 @@ export class BarChartComponent implements OnInit {
       .attr('text-anchor', 'middle')
       .style('font-size', '18px')
       .style('font-weight', 'bold')
-      .text('Number of Points by Decade');
+      .text('How NHL Draft Nationalities Performed Across Decades (1963–2022)');
 
     // X-axis label.
     this.svg
