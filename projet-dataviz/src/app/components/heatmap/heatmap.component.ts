@@ -14,19 +14,19 @@ import * as d3 from 'd3';
 export class HeatmapComponent {
   margin = { top: 40, right: 20, bottom: 90, left: 90 };
   DEFAULT_CHART_HEIGHT: number = window.innerHeight - 150; // Default to 800 if window height is unavailable
-  DEFAULT_CHART_WIDTH: number = window.innerWidth - 320;
+  DEFAULT_CHART_WIDTH: number = window.innerWidth - 520;
   xScaleHeight: number = this.DEFAULT_CHART_HEIGHT;
   yScaleWidth: number = this.DEFAULT_CHART_WIDTH;
 
   xScale = d3.scaleBand().padding(0.1);
   yScale = d3.scaleBand().padding(0.1);
-  colorScale = d3.scaleSequential(d3.interpolateBlues);
+  colorScale = d3.scaleSequential(d3.interpolateRgb("rgb(250, 250, 255)", "rgb(0, 0, 255)"));
 
-  periodStart: number = 2000;
-  periodEnd: number = 2009;
+  periodStart: number = 1980;
+  periodEnd: number = 2020;
   rankStart: number = 1;
-  rankEnd: number = 60;
-  gameThreshold: number = 0;
+  rankEnd: number = 50;
+  gameThreshold: number = 1;
   currentData: HeatmapPlayerClass[] = [];
 
   minPoints: number = 0;
@@ -92,9 +92,9 @@ export class HeatmapComponent {
     const fullData = []
     for (const pointRange of this.pointClasses) {
       for (let i = this.periodStart; i <= this.periodEnd; i++) {
-        const count = groupedData.find(d => d.year == i && d.pointRange == pointRange)
-        if (count !== undefined) fullData.push({ pointsRange: pointRange, year: i, amount: count.amount })
-        else fullData.push({ pointsRange: pointRange, year: i, amount: 0 })
+        const count = groupedData.find(d => d.year == i && d.pointRange == pointRange);
+        if (count !== undefined) fullData.push({ pointsRange: pointRange, year: i, amount: count.amount });
+        // else fullData.push({ pointsRange: pointRange, year: i, amount: 0 })
       }
     }
     this.currentData = fullData;
