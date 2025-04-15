@@ -24,8 +24,8 @@ import * as d3 from 'd3';
   styleUrl: './heatmap.component.css',
 })
 export class HeatmapComponent {
-  margin = { top: 40, right: 120, bottom: 90, left: 90 };
-  DEFAULT_CHART_HEIGHT: number = window.innerHeight - 150; // Default to 800 if window height is unavailable
+  margin = { top: 40, right: 130, bottom: 90, left: 90 };
+  DEFAULT_CHART_HEIGHT: number = window.innerHeight - 200; // Default to 800 if window height is unavailable
   DEFAULT_CHART_WIDTH: number = window.innerWidth - 520;
   xScaleHeight: number = this.DEFAULT_CHART_HEIGHT;
   yScaleWidth: number = this.DEFAULT_CHART_WIDTH;
@@ -252,6 +252,14 @@ export class HeatmapComponent {
       .call(d3.axisBottom(this.xScale))
       .select('.domain')
       .remove();
+
+    svg
+      .append('text')
+      .attr('text-anchor', 'middle')
+      .attr('x', this.DEFAULT_CHART_WIDTH / 2)
+      .attr('y', this.xScaleHeight + this.margin.bottom - 30)
+      .style('font-size', '14px')
+      .text('Draft Year');
   }
 
   appendYAxis() {
@@ -262,6 +270,16 @@ export class HeatmapComponent {
       .call(d3.axisRight(this.yScale).tickFormat((d, i) => this.tickLabels[i]))
       .select('.domain')
       .remove();
+
+    svg
+      .append('text')
+      .attr('text-anchor', 'middle')
+      .attr(
+        'transform',
+        `translate(${this.yScaleWidth + 80}, ${this.DEFAULT_CHART_HEIGHT / 2}) rotate(90)`
+      )
+      .style('font-size', '14px')
+      .text('Points Scored Range');
   }
 
   appendLegend() {
@@ -273,7 +291,7 @@ export class HeatmapComponent {
     const legendContainer = svg
       .append('g')
       .attr('id', 'legend-container')
-      .attr('transform', `translate(${this.DEFAULT_CHART_WIDTH + 140}, 30)`);
+      .attr('transform', `translate(${this.DEFAULT_CHART_WIDTH + 155}, 30)`);
 
     // Create a linear gradient for the legend color scale
     const colorLegend = legendContainer
