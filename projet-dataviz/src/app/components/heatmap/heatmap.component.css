@@ -1,3 +1,7 @@
+.flex-container {
+  display: flex;
+}
+
 .title {
   text-align: center;
   font-family: 'Orbitron', 'Poppins', 'Montserrat', sans-serif;
