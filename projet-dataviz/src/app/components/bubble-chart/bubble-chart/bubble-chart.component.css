@@ -1,0 +1,20 @@
+.viz-container {
+    /*50 px title padding, 40px h1 height, */
+    height: calc(100% - 50px - 40px - 100px);
+}
+
+#bubble-chart-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.title {
+  text-align: center;
+  font-family: 'Orbitron', 'Poppins', 'Montserrat', sans-serif;
+  font-size: 32px;
+  margin-top: 20px;
+  color: #1f2937; /* cool dark slate color */
+}
