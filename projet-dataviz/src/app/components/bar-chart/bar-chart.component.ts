@@ -292,6 +292,7 @@ export class BarChartComponent implements OnInit {
       .attr('text-anchor', 'middle')
       .style('font-size', '18px')
       .style('font-weight', 'bold')
+      .style('font-family', 'Orbitron')
       .text('How NHL Draft Nationalities Performed Across Decades (1963–2022)');
 
     // X-axis label.
