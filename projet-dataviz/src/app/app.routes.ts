@@ -7,6 +7,7 @@ import { NgModule } from '@angular/core';
 import { HeatmapComponent } from './components/heatmap/heatmap.component';
 
 export const routes: Routes = [
+  { path: '*', redirectTo: '', component: HomePageComponent },
   { path: '', component: HomePageComponent },
   { path: 'bubble', component: BubbleChartComponent },
   { path: 'beeswarm', component: BeeswarmChartComponent },
