@@ -14,7 +14,7 @@ export class BubbleChartComponent {
   private countByCountry: Record<string, Record<string, number>> = {};
   private yScale: d3.ScalePoint<string> = d3.scalePoint();
   private xScale: d3.ScalePoint<string> = d3.scalePoint();
-  private sizeScale: d3.ScalePower<number, number> = d3.scaleSqrt();
+  private sizeScale: d3.ScaleLinear<number, number> = d3.scaleLinear();
   private allYears: Set<number> = new Set();
   private margin = { top: 40, right: 350, bottom: 40, left: 350 };
 
@@ -210,7 +210,9 @@ export class BubbleChartComponent {
         (d) => `translate(0, ${(this.yScale(d[0]) ?? 0) + this.margin.top / 2})`
       )
       .selectAll('.count')
-      .data((d) => Object.entries(d[1]))
+      .data((d) =>
+        Object.entries(d[1]).filter(([key, value]) => key !== 'total')
+      )
       .join('g')
       .attr('class', 'count')
       .append('circle')
