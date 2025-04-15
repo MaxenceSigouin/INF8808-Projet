@@ -3,11 +3,23 @@ import { DataProcessingService } from '../../services/data-processsing/data-proc
 import { ChartStyleManagerService } from '../../services/chart-style-manager/chart-style-manager.service';
 import { Player } from '../../interfaces/Player';
 import { HeatmapPlayerClass } from '../../interfaces/HeatmapPlayerClass';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import * as d3 from 'd3';
 
 @Component({
   selector: 'app-heatmap',
-  imports: [],
+  imports: [
+    MatButtonToggleModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
+  ],
   templateUrl: './heatmap.component.html',
   styleUrl: './heatmap.component.css',
 })
