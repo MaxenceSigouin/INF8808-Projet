@@ -139,7 +139,10 @@ export class BeeswarmChartComponent {
       .attr('stroke', '#333')
       .attr('stroke-width', 0.5)
       .on('mouseover', (event, d) => {
+        const [x, y] = d3.pointer(event); // Get mouse position relative to the container
+
         tooltip.transition().duration(200).style('opacity', 1);
+
         tooltip
           .html(
             `<strong>${d.player} (${d.specificNationality})</strong><br/>
@@ -149,8 +152,8 @@ export class BeeswarmChartComponent {
             Assists: ${d.assists}<br/>
             Games: ${d.games_played}`
           )
-          .style('left', event.pageX + 10 + 'px')
-          .style('top', event.pageY - 30 + 'px');
+          .style('left', `${x + 30}px`) // Adjust tooltip position relative to the mouse
+          .style('top', `${y + 30}px`);
       })
       .on('mouseout', () => {
         tooltip.transition().duration(200).style('opacity', 0);
@@ -193,29 +196,30 @@ export class BeeswarmChartComponent {
     // Remove any previous radar chart if it exists
     d3.select('#radar-chart').remove();
     d3.selectAll('.radar-tooltip').remove();
-  
+
     const radarWidth = 300;
     const radarHeight = 300;
     const margin = 40;
     const radius = Math.min(radarWidth, radarHeight) / 2 - margin;
     const cx = radarWidth / 2;
     const cy = radarHeight / 2;
-  
+
     // Compute maximum values for each stat based on the current year's players
     const maxGoals = d3.max(this.currentData, (d) => d.goals) || 1;
     const maxAssists = d3.max(this.currentData, (d) => d.assists) || 1;
     const maxPoints = d3.max(this.currentData, (d) => d.points) || 1;
     const maxGames = d3.max(this.currentData, (d) => d.games_played) || 1;
-  
+
     const stats = [
       { label: 'Goals', value: player.goals, max: maxGoals },
       { label: 'Assists', value: player.assists, max: maxAssists },
       { label: 'Points', value: player.points, max: maxPoints },
-      { label: 'Games', value: player.games_played, max: maxGames }
+      { label: 'Games', value: player.games_played, max: maxGames },
     ];
-  
+
     // Create a tooltip for radar points
-    const tooltip = d3.select('#beeswarm-container')
+    const tooltip = d3
+      .select('#beeswarm-container')
       .append('div')
       .attr('class', 'radar-tooltip')
       .style('position', 'absolute')
@@ -225,31 +229,32 @@ export class BeeswarmChartComponent {
       .style('border-radius', '4px')
       .style('pointer-events', 'none')
       .style('opacity', 0);
-  
+
     // Create SVG container for the radar chart and position it at the top left
-    const svg = d3.select('#beeswarm-container')
+    const svg = d3
+      .select('#beeswarm-container')
       .append('svg')
       .attr('id', 'radar-chart')
       .attr('width', radarWidth)
       .attr('height', radarHeight)
       .style('position', 'absolute')
       .style('top', '25px')
-      .style('left', '-25px'); 
-  
-    svg.append("text")
-      .attr("x", radarWidth - 10)
-      .attr("y", 15)
-      .attr("text-anchor", "end")
-      .attr("font-size", "16px")
-      .attr("cursor", "pointer")
-      .text("X")
-      .on("click", () => {
+      .style('left', '-25px');
+
+    svg
+      .append('text')
+      .attr('x', radarWidth - 10)
+      .attr('y', 15)
+      .attr('text-anchor', 'end')
+      .attr('font-size', '16px')
+      .attr('cursor', 'pointer')
+      .text('X')
+      .on('click', () => {
         svg.remove();
       });
-  
-    const g = svg.append('g')
-      .attr('transform', `translate(${cx}, ${cy})`);
-  
+
+    const g = svg.append('g').attr('transform', `translate(${cx}, ${cy})`);
+
     const levels = 4;
     for (let i = 1; i <= levels; i++) {
       g.append('circle')
@@ -258,12 +263,12 @@ export class BeeswarmChartComponent {
         .attr('stroke', '#ccc')
         .attr('stroke-dasharray', '2,2');
     }
-  
+
     stats.forEach((stat, i) => {
-      const angle = (Math.PI * 2) / stats.length * i - Math.PI / 2;
+      const angle = ((Math.PI * 2) / stats.length) * i - Math.PI / 2;
       const x = radius * Math.cos(angle);
       const y = radius * Math.sin(angle);
-  
+
       g.append('line')
         .attr('x1', 0)
         .attr('y1', 0)
@@ -271,7 +276,7 @@ export class BeeswarmChartComponent {
         .attr('y2', y)
         .attr('stroke', '#ccc')
         .attr('stroke-dasharray', '2,2');
-  
+
       g.append('text')
         .attr('x', x * 1.1)
         .attr('y', y * 1.1)
@@ -279,20 +284,20 @@ export class BeeswarmChartComponent {
         .attr('font-size', '10px')
         .text(stat.label);
     });
-  
+
     const computedPoints = stats.map((stat, i) => {
-      const angle = (Math.PI * 2) / stats.length * i - Math.PI / 2;
+      const angle = ((Math.PI * 2) / stats.length) * i - Math.PI / 2;
       const r = (stat.value / stat.max) * radius;
       return { stat: stat, x: r * Math.cos(angle), y: r * Math.sin(angle) };
     });
-  
+
     g.append('polygon')
       .datum(computedPoints)
-      .attr('points', (d) => d.map(pt => [pt.x, pt.y].join(',')).join(' '))
+      .attr('points', (d) => d.map((pt) => [pt.x, pt.y].join(',')).join(' '))
       .attr('fill', 'rgba(255,0,0,0.5)')
       .attr('stroke', 'red')
       .attr('stroke-width', 2);
-  
+
     computedPoints.forEach((pt) => {
       g.append('circle')
         .attr('cx', pt.x)
@@ -301,25 +306,25 @@ export class BeeswarmChartComponent {
         .attr('fill', 'red')
         .on('mouseover', (event) => {
           tooltip.transition().duration(200).style('opacity', 1);
-          tooltip.html(`${pt.stat.label}: ${pt.stat.value}`)
-            .style('left', (event.pageX + 5) + 'px')
-            .style('top', (event.pageY - 28) + 'px');
+          tooltip
+            .html(`${pt.stat.label}: ${pt.stat.value}`)
+            .style('left', event.pageX + 5 + 'px')
+            .style('top', event.pageY - 28 + 'px');
         })
         .on('mouseout', () => {
           tooltip.transition().duration(200).style('opacity', 0);
         });
     });
-  
-    svg.append('text')
+
+    svg
+      .append('text')
       .attr('x', cx)
       .attr('y', margin / 2)
       .attr('text-anchor', 'middle')
       .attr('font-size', '14px')
       .attr('font-weight', 'bold')
       .text(`${player.player}, ${player.position}`);
-
   }
-  
 
   transitionView(stat: keyof Player) {
     const dur = 1000;
