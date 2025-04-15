@@ -197,7 +197,7 @@ export class BubbleChartComponent {
     );
     this.sizeScale.domain([0, maxTotal]).range([0, 40]);
   }
-
+  
   drawData() {
     console.log(Object.entries(this.countByCountry));
     d3.select('svg #graph-g')
@@ -218,7 +218,8 @@ export class BubbleChartComponent {
       .append('circle')
       .attr('transform', (d) => `translate(${this.xScale(d[0])}, 0)`)
       .attr('r', (d) => this.sizeScale(d[1]))
+      .style('fill', '#50a1df') // 👈 Add this line to color the bubbles
       .on('mouseover', () => {});
-    // .attr('transform', d => `translate(${this.xScale(d[1])}, ${})`);
   }
+  
 }
