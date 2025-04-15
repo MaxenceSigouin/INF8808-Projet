@@ -45,6 +45,26 @@
           >
         </mat-form-field>
       </td>
+      <td>
+        <mat-form-field class="large-field-selector">
+          <mat-label>Minimum Amount of Games</mat-label>
+          <input matInput
+                 type="number"
+                 [(ngModel)]="gameThreshold"
+                 (keyup.enter)="updateHeatmap()"
+          >
+        </mat-form-field>
+      </td>
+      <td>
+        <mat-form-field class="large-field-selector">
+          <mat-label>Point Range Amount</mat-label>
+          <input matInput
+                 type="number"
+                 [(ngModel)]="pointClassesAmount"
+                 (keyup.enter)="updateHeatmap()"
+          >
+        </mat-form-field>
+      </td>
     </table>
   </div>
 </div>

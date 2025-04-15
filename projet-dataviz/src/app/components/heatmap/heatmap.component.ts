@@ -41,14 +41,16 @@ export class HeatmapComponent {
   rankStart: number = 1;
   rankEnd: number = 50;
   gameThreshold: number = 1;
+  pointClassesAmount: number = 20;
   currentData: HeatmapPlayerClass[] = [];
 
   minPoints: number = 0;
   maxPoints: number = 0;
   tickSize: number = 0;
-  pointClassesAmount: number = 20;
   pointClasses: number[][] = [];
   tickLabels: string[] = [];
+
+  error: string = '';
 
   constructor(
     private dataSrv: DataProcessingService,
@@ -60,8 +62,12 @@ export class HeatmapComponent {
   }
 
   updateHeatmap() {
-    this.updateChart();
-    // this.transitionView();
+    if (this.validateFields()) {
+      this.updateChart();
+    }
+    else {
+      alert(this.error);
+    }
   }
 
   updateChart() {
@@ -305,7 +311,7 @@ export class HeatmapComponent {
       .scaleSqrt()
       .domain(this.colorScale.domain())
       .range([400, 0]); // Same width as the gradient bar
-    const axis = d3.axisLeft(scale).ticks(this.pointClassesAmount).tickSize(6);
+    const axis = d3.axisLeft(scale).ticks(20).tickSize(6);
 
     // Append axis to the legend
     legendContainer
@@ -315,12 +321,39 @@ export class HeatmapComponent {
       .select('.domain')
       .remove(); // Remove the axis line
 
-    // Optional: Add a label for the legend
     legendContainer
       .append('text')
-      .attr('x', 0) // Centered horizontally
-      .attr('y', -10) // Position below the axis
+      .attr('x', 0)
+      .attr('y', -10)
       .attr('text-anchor', 'middle')
       .text('Amount of Players');
+  }
+
+  validateFields(): boolean {
+    if (this.periodStart < 1963 || this.periodStart > 2022 || this.periodEnd < 1963 || this.periodEnd > 2022) {
+      this.error = 'The selected years must be contained between 1963 and 2022 inclusively.'
+      return false;
+    }
+    if (this.periodStart > this.periodEnd) {
+      this.error = 'The first selected year must be smaller than the last selected year.'
+      return false;
+    }
+    if (this.rankStart < 1 || this.rankStart > 293 || this.rankEnd < 1 || this.rankEnd > 293) {
+      this.error = 'The selected ranks must be contained between 1 and 293 inclusively.'
+      return false;
+    }
+    if (this.rankStart > this.rankEnd) {
+      this.error = 'The first selected rank must be smaller than the last selected rank.'
+      return false;
+    }
+    if (this.gameThreshold < 0 || this.gameThreshold > 1779) {
+      this.error = 'The minimum amount of games must be contained between 0 and 1779 inclusively.'
+      return false;
+    }
+    if (this.pointClassesAmount < 1 || this.pointClassesAmount > 50) {
+      this.error = 'The amount of point ranges must be contained between 1 and 50 inclusively.'
+      return false;
+    }
+    return true;
   }
 }

@@ -6,6 +6,10 @@
   width: 130px;
 }
 
+.large-field-selector {
+  width: 180px;
+}
+
 td {
   padding-right: 8px;
 }
