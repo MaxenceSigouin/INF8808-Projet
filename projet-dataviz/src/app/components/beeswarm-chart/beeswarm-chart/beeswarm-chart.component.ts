@@ -189,28 +189,31 @@ export class BeeswarmChartComponent {
   }
 
   createRadarChart(player: Player): void {
+    // Remove any previous radar chart if it exists
     d3.select('#radar-chart').remove();
     d3.selectAll('.radar-tooltip').remove();
-
+  
     const radarWidth = 300;
     const radarHeight = 300;
     const margin = 40;
     const radius = Math.min(radarWidth, radarHeight) / 2 - margin;
     const cx = radarWidth / 2;
     const cy = radarHeight / 2;
-
+  
+    // Compute maximum values for each stat based on the current year's players
     const maxGoals = d3.max(this.currentData, (d) => d.goals) || 1;
     const maxAssists = d3.max(this.currentData, (d) => d.assists) || 1;
     const maxPoints = d3.max(this.currentData, (d) => d.points) || 1;
     const maxGames = d3.max(this.currentData, (d) => d.games_played) || 1;
-
+  
     const stats = [
       { label: 'Goals', value: player.goals, max: maxGoals },
       { label: 'Assists', value: player.assists, max: maxAssists },
       { label: 'Points', value: player.points, max: maxPoints },
       { label: 'Games', value: player.games_played, max: maxGames }
     ];
-
+  
+    // Create a tooltip for radar points
     const tooltip = d3.select('#beeswarm-container')
       .append('div')
       .attr('class', 'radar-tooltip')
@@ -221,16 +224,17 @@ export class BeeswarmChartComponent {
       .style('border-radius', '4px')
       .style('pointer-events', 'none')
       .style('opacity', 0);
-
+  
+    // Create SVG container for the radar chart and position it at the top left
     const svg = d3.select('#beeswarm-container')
       .append('svg')
       .attr('id', 'radar-chart')
       .attr('width', radarWidth)
       .attr('height', radarHeight)
       .style('position', 'absolute')
-      .style('top', '20px')
-      .style('left', (this.DEFAULT_CHART_WIDTH - radarWidth) / 2 + 'px');
-
+      .style('top', '25px')
+      .style('left', '-25px'); 
+  
     svg.append("text")
       .attr("x", radarWidth - 10)
       .attr("y", 15)
@@ -241,10 +245,10 @@ export class BeeswarmChartComponent {
       .on("click", () => {
         svg.remove();
       });
-
+  
     const g = svg.append('g')
       .attr('transform', `translate(${cx}, ${cy})`);
-
+  
     const levels = 4;
     for (let i = 1; i <= levels; i++) {
       g.append('circle')
@@ -253,12 +257,12 @@ export class BeeswarmChartComponent {
         .attr('stroke', '#ccc')
         .attr('stroke-dasharray', '2,2');
     }
-
+  
     stats.forEach((stat, i) => {
       const angle = (Math.PI * 2) / stats.length * i - Math.PI / 2;
       const x = radius * Math.cos(angle);
       const y = radius * Math.sin(angle);
-
+  
       g.append('line')
         .attr('x1', 0)
         .attr('y1', 0)
@@ -266,7 +270,7 @@ export class BeeswarmChartComponent {
         .attr('y2', y)
         .attr('stroke', '#ccc')
         .attr('stroke-dasharray', '2,2');
-
+  
       g.append('text')
         .attr('x', x * 1.1)
         .attr('y', y * 1.1)
@@ -274,25 +278,20 @@ export class BeeswarmChartComponent {
         .attr('font-size', '10px')
         .text(stat.label);
     });
-
+  
     const computedPoints = stats.map((stat, i) => {
       const angle = (Math.PI * 2) / stats.length * i - Math.PI / 2;
-      let r: number;
-      if ((stat as any).min !== undefined) {
-        r = ((stat.value - (stat as any).min) / ((stat as any).max - (stat as any).min)) * radius;
-      } else {
-        r = (stat.value / stat.max) * radius;
-      }
+      const r = (stat.value / stat.max) * radius;
       return { stat: stat, x: r * Math.cos(angle), y: r * Math.sin(angle) };
     });
-
+  
     g.append('polygon')
       .datum(computedPoints)
       .attr('points', (d) => d.map(pt => [pt.x, pt.y].join(',')).join(' '))
       .attr('fill', 'rgba(255,0,0,0.5)')
       .attr('stroke', 'red')
       .attr('stroke-width', 2);
-
+  
     computedPoints.forEach((pt) => {
       g.append('circle')
         .attr('cx', pt.x)
@@ -309,7 +308,7 @@ export class BeeswarmChartComponent {
           tooltip.transition().duration(200).style('opacity', 0);
         });
     });
-
+  
     svg.append('text')
       .attr('x', cx)
       .attr('y', margin / 2)
@@ -317,7 +316,9 @@ export class BeeswarmChartComponent {
       .attr('font-size', '14px')
       .attr('font-weight', 'bold')
       .text(`${player.player}, ${player.position}`);
+
   }
+  
 
   transitionView(stat: keyof Player) {
     const dur = 1000;
