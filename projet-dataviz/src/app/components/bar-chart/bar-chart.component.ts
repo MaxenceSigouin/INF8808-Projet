@@ -107,19 +107,21 @@ export class BarChartComponent implements OnInit {
 
   // Addind de decade column to the data
   private preprocessData(data: any[]): any[] {
-    return data.map((d) => {
-      const year = +d['year'];
-      if (year >= 2020 && year <= 2022) {
-        d['decade'] = '2020-2022';
-      } else {
-        const decadeStart = Math.floor(year / 10) * 10;
-        const decadeEnd = decadeStart + 9;
-        d['decade'] = `${decadeStart}-${decadeEnd}`;
-      }
-      return d;
-    });
+    return data
+      .map((d) => {
+        const year = +d['year'];
+        if (year >= 2020 && year <= 2022) {
+          return null; // remove this entry
+        } else {
+          const decadeStart = Math.floor(year / 10) * 10;
+          const decadeEnd = decadeStart + 9;
+          d['decade'] = `${decadeStart}-${decadeEnd}`;
+          return d;
+        }
+      })
+      .filter((d) => d !== null); // remove nulls
   }
-
+  
   // Counting the amount of points by year for each decade column
   private countYAxis(data: any[]): any[] {
     const aggregatedData: any[] = [];
