@@ -1,12 +1,14 @@
-#beaswarm-chart-topbar{
+#beeswarm-container {
+    position: relative;
+}
+
+#beaswarm-chart-topbar {
     position: absolute;
     top: 100px;
-    left: 60px;
+    left: 280px; /* Match sidebar width and add the 60px */
     display: flex;
     flex-direction: row;
     align-items: baseline;
+    gap: 10px;
 }
 
-#beeswarm-container {
-    position: relative;
-  }

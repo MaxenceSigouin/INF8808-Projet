@@ -1,0 +1,15 @@
+<div class="button-group">
+  <mat-button-toggle-group
+    id="view-toggle"
+    [formControl]="positionsControl"
+    (ngModelChange)="toggleCategory(positionSelected)"
+    name="viewToggle"
+    aria-label="View Toggle"
+    multiple
+  >
+    <mat-button-toggle value="forward">Forward (LW, C, RW)</mat-button-toggle>
+    <mat-button-toggle value="defensemen">Defensemen (D)</mat-button-toggle>
+    <mat-button-toggle value="goalie">Goalie (G)</mat-button-toggle>
+  </mat-button-toggle-group>
+</div>
+<figure id="barChart"></figure>

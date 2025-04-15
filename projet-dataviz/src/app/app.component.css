@@ -1,0 +1,15 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+app-sidebar {
+  flex: 0 0 220px; /* Fixed width */
+}
+
+.content {
+  flex: 1;
+  padding: 1rem;
+  background-color: #fff;
+  overflow-x: hidden;
+}
