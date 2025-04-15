@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
   styleUrl: './home-page.component.css',
 })
 export class HomePageComponent {
-  constructor(private router: Router) {  }
+  constructor(private router: Router) {}
 
   goToStats() {
     this.router.navigate(['/beeswarm']);
