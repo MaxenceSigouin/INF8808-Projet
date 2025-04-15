@@ -2,6 +2,14 @@
   display: flex;
 }
 
+.year-selector {
+  width: 200px;
+}
+
+td {
+  padding-right: 8px;
+}
+
 .title {
   text-align: center;
   font-family: 'Orbitron', 'Poppins', 'Montserrat', sans-serif;

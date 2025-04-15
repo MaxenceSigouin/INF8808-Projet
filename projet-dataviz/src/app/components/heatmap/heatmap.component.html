@@ -4,22 +4,48 @@
     <p class="subtitle">How many players in each point range per draft year</p>
   </div>
   <div id="heatmap-options">
-    <mat-form-field>
-      <mat-label>First Year</mat-label>
-      <input matInput
-        type="number"
-        [(ngModel)]="periodStart"
-        (keyup.enter)="updateHeatmap()"
-      >
-    </mat-form-field>
-    <mat-form-field>
-      <mat-label>Last Year</mat-label>
-      <input matInput
-             type="number"
-             [(ngModel)]="periodEnd"
-             (keyup.enter)="updateHeatmap()"
-      >
-    </mat-form-field>
+    <table>
+      <td>
+        <mat-form-field class="year-selector">
+          <mat-label>First Year</mat-label>
+          <input matInput
+                 type="number"
+                 [(ngModel)]="periodStart"
+                 (keyup.enter)="updateHeatmap()"
+          >
+        </mat-form-field>
+      </td>
+      <td>
+        <mat-form-field class="year-selector">
+          <mat-label>Last Year</mat-label>
+          <input matInput
+                 type="number"
+                 [(ngModel)]="periodEnd"
+                 (keyup.enter)="updateHeatmap()"
+          >
+        </mat-form-field>
+      </td>
+      <td>
+        <mat-form-field class="year-selector">
+          <mat-label>First Draft Rank</mat-label>
+          <input matInput
+                 type="number"
+                 [(ngModel)]="rankStart"
+                 (keyup.enter)="updateHeatmap()"
+          >
+        </mat-form-field>
+      </td>
+      <td>
+        <mat-form-field class="year-selector">
+          <mat-label>Last Draft Rank</mat-label>
+          <input matInput
+                 type="number"
+                 [(ngModel)]="rankEnd"
+                 (keyup.enter)="updateHeatmap()"
+          >
+        </mat-form-field>
+      </td>
+    </table>
   </div>
 </div>
 <div id="heatmap-container"></div>
