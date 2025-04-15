@@ -12,7 +12,7 @@ import * as d3 from 'd3';
   styleUrl: './heatmap.component.css'
 })
 export class HeatmapComponent {
-  margin = { top: 40, right: 20, bottom: 90, left: 90 };
+  margin = { top: 40, right: 120, bottom: 90, left: 90 };
   DEFAULT_CHART_HEIGHT: number = window.innerHeight - 150; // Default to 800 if window height is unavailable
   DEFAULT_CHART_WIDTH: number = window.innerWidth - 520;
   xScaleHeight: number = this.DEFAULT_CHART_HEIGHT;
@@ -20,7 +20,7 @@ export class HeatmapComponent {
 
   xScale = d3.scaleBand().padding(0.1);
   yScale = d3.scaleBand().padding(0.1);
-  colorScale = d3.scaleSequential(d3.interpolateRgb("rgb(255, 255, 255)", "rgb(0, 0, 255)"));
+  colorScale = d3.scaleSequentialSqrt(d3.interpolateRgb("rgb(120, 120, 120)", "rgb(0, 255, 0)"));
 
   periodStart: number = 1980;
   periodEnd: number = 2020;
@@ -32,7 +32,7 @@ export class HeatmapComponent {
   minPoints: number = 0;
   maxPoints: number = 0;
   tickSize: number = 0;
-  pointClassesAmount: number = 15;
+  pointClassesAmount: number = 20;
   pointClasses: number[][] = [];
   tickLabels: string[] = [];
 
@@ -82,7 +82,7 @@ export class HeatmapComponent {
       }
     }
 
-    console.log(this.tickLabels);
+    // console.log(this.tickLabels);
 
     const groupedData = d3.flatRollup(data, v => v.length, d => d.year, d => {
       let currentPointClass = [0, 0];
@@ -152,16 +152,86 @@ export class HeatmapComponent {
       .attr('height', this.yScale.bandwidth())
       .style('fill', (d) => { return this.colorScale(d.amount) });
 
+    this.appendXAxis();
+    this.appendYAxis();
+    this.appendLegend();
+  }
+
+  appendXAxis() {
+   const svg = d3.select('#heatmap');
     svg
       .append('g')
       .attr('transform', `translate(0, ${this.xScaleHeight})`)
       .call(d3.axisBottom(this.xScale))
       .select('.domain').remove();
+  }
 
+  appendYAxis() {
+    const svg = d3.select('#heatmap');
     svg
       .append('g')
       .attr('transform', `translate(${this.yScaleWidth}, 0)`)
       .call(d3.axisRight(this.yScale).tickFormat((d, i) => this.tickLabels[i]))
       .select('.domain').remove();
+  }
+
+  appendLegend() {
+    const svg = d3.select('#heatmap');
+
+    // Remove any existing legend if present
+    svg.select('#legend-container').remove();
+
+    const legendContainer = svg
+      .append('g')
+      .attr('id', 'legend-container')
+      .attr('transform', `translate(${this.DEFAULT_CHART_WIDTH + 140}, 30)`);
+
+    // Create a linear gradient for the legend color scale
+    const colorLegend = legendContainer
+      .append('defs')
+      .append('linearGradient')
+      .attr('id', 'color-gradient')
+      .attr('x1', '0%')
+      .attr('x2', '0%')
+      .attr('y1', '100%')
+      .attr('y2', '0%');
+
+    // Define the gradient stops based on the color scale
+    colorLegend
+      .append('stop')
+      .attr('offset', '0%')
+      .attr('stop-color', this.colorScale(0));
+
+    colorLegend
+      .append('stop')
+      .attr('offset', '100%')
+      .attr('stop-color', this.colorScale(d3.max(this.currentData, d => d.amount) as number));
+
+    // Draw the gradient bar
+    legendContainer
+      .append('rect')
+      .attr('width', 25) // Adjust width of the legend bar
+      .attr('height', 400) // Height of the gradient bar
+      .style('fill', 'url(#color-gradient)');
+
+    // Add axis for the legend
+    const scale = d3.scaleSqrt().domain(this.colorScale.domain()).range([400, 0]); // Same width as the gradient bar
+    const axis = d3.axisLeft(scale).ticks(this.pointClassesAmount).tickSize(6);
+
+    // Append axis to the legend
+    legendContainer
+      .append('g')
+      .attr('transform', 'translate(-10, 0)') // Position the axis below the gradient bar
+      .call(axis)
+      .select('.domain')
+      .remove(); // Remove the axis line
+
+    // Optional: Add a label for the legend
+    legendContainer
+      .append('text')
+      .attr('x', 0) // Centered horizontally
+      .attr('y', -10) // Position below the axis
+      .attr('text-anchor', 'middle')
+      .text('Amount of Players');
   }
 }
