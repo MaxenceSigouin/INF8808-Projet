@@ -127,10 +127,23 @@ export class HeatmapComponent {
 
   createHeatmap() {
     d3.select('svg').remove();
+    d3.selectAll('.tooltip').remove(); // Remove tooltips
 
     this.colorScale.domain([0, d3.max(this.currentData, d => d.amount) as number]);
     this.updateXScale();
     this.updateYScale();
+
+    const tooltip = d3
+      .select('#heatmap-container')
+      .append('div')
+      .attr('class', 'tooltip')
+      .style('position', 'absolute')
+      .style('background', '#fff')
+      .style('padding', '6px')
+      .style('border', '1px solid #ccc')
+      .style('border-radius', '4px')
+      .style('pointer-events', 'none')
+      .style('opacity', 0);
 
     const svg = d3
       .select('#heatmap-container')
@@ -150,7 +163,22 @@ export class HeatmapComponent {
       .attr('width', this.xScale.bandwidth())
       .attr('y', (d) => { return this.yScale(String(d.pointsRange)) || 0 })
       .attr('height', this.yScale.bandwidth())
-      .style('fill', (d) => { return this.colorScale(d.amount) });
+      .style('fill', (d) => { return this.colorScale(d.amount) })
+      .attr('stroke', '#333')
+      .attr('stroke-width', 0.5)
+      .on('mouseover', (event, d) => {
+        tooltip.transition().duration(200).style('opacity', 1);
+        tooltip
+          .html(
+            `<strong>${d.year}, from ${d.pointsRange[0]} to ${d.pointsRange[1]} points</strong><br/>
+            Amount of players: ${d.amount}<br/>`
+          )
+          .style('left', event.pageX + 10 + 'px')
+          .style('top', event.pageY - 30 + 'px');
+      })
+      .on('mouseout', () => {
+        tooltip.transition().duration(200).style('opacity', 0);
+      });
 
     this.appendXAxis();
     this.appendYAxis();
