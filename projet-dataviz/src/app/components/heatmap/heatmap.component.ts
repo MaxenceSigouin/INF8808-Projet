@@ -20,7 +20,7 @@ export class HeatmapComponent {
 
   xScale = d3.scaleBand().padding(0.1);
   yScale = d3.scaleBand().padding(0.1);
-  colorScale = d3.scaleSequential(d3.interpolateRgb("rgb(250, 250, 255)", "rgb(0, 0, 255)"));
+  colorScale = d3.scaleSequential(d3.interpolateRgb("rgb(255, 255, 255)", "rgb(0, 0, 255)"));
 
   periodStart: number = 1980;
   periodEnd: number = 2020;
@@ -34,6 +34,7 @@ export class HeatmapComponent {
   tickSize: number = 0;
   pointClassesAmount: number = 15;
   pointClasses: number[][] = [];
+  tickLabels: string[] = [];
 
  constructor(
    private dataSrv: DataProcessingService,
@@ -68,14 +69,20 @@ export class HeatmapComponent {
     // Get points categories for y axis
     this.maxPoints = d3.max(data, d => d.points) || 0;
     this.tickSize = this.maxPoints / this.pointClassesAmount;
+    this.pointClasses = [];
+    this.tickLabels = [];
     for (let i = 0; i < this.pointClassesAmount; i++) {
       if (i == 0) {
-        this.pointClasses.push([0, Math.floor(this.tickSize)])
+        this.pointClasses.push([0, Math.floor(this.tickSize)]);
+        this.tickLabels.push(String('0 - ' + Math.floor(this.tickSize)));
       }
       else {
-        this.pointClasses.push([Math.floor(this.tickSize * i) + 1, Math.floor(this.tickSize * (i + 1))])
+        this.pointClasses.push([Math.floor(this.tickSize * i) + 1, Math.floor(this.tickSize * (i + 1))]);
+        this.tickLabels.push(String((Math.floor(this.tickSize * i) + 1) + ' - ' + (Math.floor(this.tickSize * (i + 1)))));
       }
     }
+
+    console.log(this.tickLabels);
 
     const groupedData = d3.flatRollup(data, v => v.length, d => d.year, d => {
       let currentPointClass = [0, 0];
@@ -94,7 +101,7 @@ export class HeatmapComponent {
       for (let i = this.periodStart; i <= this.periodEnd; i++) {
         const count = groupedData.find(d => d.year == i && d.pointRange == pointRange);
         if (count !== undefined) fullData.push({ pointsRange: pointRange, year: i, amount: count.amount });
-        // else fullData.push({ pointsRange: pointRange, year: i, amount: 0 })
+        else fullData.push({ pointsRange: pointRange, year: i, amount: 0 });
       }
     }
     this.currentData = fullData;
@@ -154,7 +161,7 @@ export class HeatmapComponent {
     svg
       .append('g')
       .attr('transform', `translate(${this.yScaleWidth}, 0)`)
-      .call(d3.axisRight(this.yScale))
+      .call(d3.axisRight(this.yScale).tickFormat((d, i) => this.tickLabels[i]))
       .select('.domain').remove();
   }
 }
