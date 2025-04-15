@@ -60,6 +60,7 @@ export class BeeswarmChartComponent {
       .style('font-size', '24px')
       .style('font-weight', 'bold')
       .style('margin-bottom', '10px')
+      .style('font-family', 'Orbitron')
       .text(
         'Behind the Draft: How NHL Players Performed After Being Selected (as of 2022)'
       );

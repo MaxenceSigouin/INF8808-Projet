@@ -1,3 +1,7 @@
-h3 {
+.title {
   text-align: center;
+  font-family: 'Orbitron', 'Poppins', 'Montserrat', sans-serif;
+  font-size: 32px;
+  margin-top: 20px;
+  color: #1f2937; /* cool dark slate color */
 }
