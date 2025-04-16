@@ -32,7 +32,7 @@ export class BubbleChartComponent {
       this.setSizeScale();
 
       this.drawData();
-
+      this.addTooltip();
       d3.selectAll('.axis path').style('opacity', '0');
       d3.selectAll('.axis text')
         .style('font-family', 'Roboto')
@@ -139,7 +139,9 @@ export class BubbleChartComponent {
         'transform',
         `translate(${-this.margin.left / 4}, ${this.margin.top / 2})`
       )
-      .call(d3.axisLeft(this.yScale));
+      .call(d3.axisLeft(this.yScale))
+      .selectAll('text')
+      .style('font-size', '16px');
   }
 
   setXScale() {
@@ -159,8 +161,10 @@ export class BubbleChartComponent {
     d3.select('svg #graph-g')
       .append('g')
       .attr('class', 'x axis')
-      .attr('transform', `translate(0, ${-this.margin.top / 2})`)
-      .call(d3.axisTop(this.xScale));
+      .attr('transform', `translate(0, ${-this.margin.top / 2 + 5})`)
+      .call(d3.axisTop(this.xScale))
+      .selectAll('text')
+      .style('font-size', '16px');
   }
 
   getYearGroup(numGroups: number) {
@@ -195,9 +199,41 @@ export class BubbleChartComponent {
         (countryData) => countryData['total']
       )
     );
-    this.sizeScale.domain([0, maxTotal]).range([0, 40]);
+    this.sizeScale.domain([0, maxTotal]).range([3, 150]);
   }
-  
+  addTooltip() {
+    const tooltip = d3
+      .select('#bubble-chart-container')
+      .append('div')
+      .attr('class', 'tooltip')
+      .style('position', 'absolute')
+      .style('background', '#fff')
+      .style('border', '1px solid #ccc')
+      .style('padding', '5px')
+      .style('border-radius', '5px')
+      .style('pointer-events', 'none')
+      .style('opacity', 0);
+
+    d3.selectAll('circle')
+      .on('mouseover', function (event, d) {
+        const data = d as [string, number];
+        tooltip
+          .style('opacity', 1)
+          .html(`Drafted Players: ${data[1]}`)
+          .style('left', `${event.pageX + 10}px`)
+          .style('top', `${event.pageY - 20}px`);
+        d3.select(this).style('stroke', '#000').style('stroke-width', 2);
+      })
+      .on('mousemove', function (event) {
+        tooltip
+          .style('left', `${event.pageX + 10}px`)
+          .style('top', `${event.pageY - 20}px`);
+      })
+      .on('mouseout', function () {
+        tooltip.style('opacity', 0);
+        d3.select(this).style('stroke', 'none');
+      });
+  }
   drawData() {
     console.log(Object.entries(this.countByCountry));
     d3.select('svg #graph-g')
@@ -218,8 +254,7 @@ export class BubbleChartComponent {
       .append('circle')
       .attr('transform', (d) => `translate(${this.xScale(d[0])}, 0)`)
       .attr('r', (d) => this.sizeScale(d[1]))
-      .style('fill', '#50a1df') // 👈 Add this line to color the bubbles
-      .on('mouseover', () => {});
+      .style('fill', '#50a1df'); //
+    // .on('mouseover', () => {});
   }
-  
 }
