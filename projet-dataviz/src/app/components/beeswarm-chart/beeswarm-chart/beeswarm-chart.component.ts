@@ -150,7 +150,8 @@ export class BeeswarmChartComponent {
             Points: ${d.points}<br/>
             Goals: ${d.goals}<br/>
             Assists: ${d.assists}<br/>
-            Games: ${d.games_played}`
+            Games: ${d.games_played}<br/>
+            Click to reveal performance breakdown.`
           )
           .style('left', `${x + 30}px`) // Adjust tooltip position relative to the mouse
           .style('top', `${y + 30}px`);
