@@ -237,18 +237,29 @@ export class BeeswarmChartComponent {
       .attr('id', 'radar-chart')
       .attr('width', radarWidth)
       .attr('height', radarHeight)
-      .style('position', 'absolute')
-      .style('top', '25px')
-      .style('left', '-25px');
+      .style('position', 'fixed')
+      .style('top', '50%')
+      .style('left', '50%')
+      .style('transform', 'translate(-50%, -50%)');
+
+    svg
+      .append('rect')
+      .attr('width', radarWidth)
+      .attr('height', radarHeight)
+      .attr('fill', 'rgba(100, 100, 100, 0.85)')
+      .attr('rx', 12)
+      .attr('ry', 12);
 
     svg
       .append('text')
       .attr('x', radarWidth - 10)
-      .attr('y', 15)
+      .attr('y', 28)
       .attr('text-anchor', 'end')
-      .attr('font-size', '16px')
+      .attr('font-size', '28px')
+      .attr('font-weight', 'bold')
       .attr('cursor', 'pointer')
-      .text('X')
+      .style('fill', 'red')
+      .text('✕') // you can also use a nicer X symbol here
       .on('click', () => {
         svg.remove();
       });
@@ -282,6 +293,7 @@ export class BeeswarmChartComponent {
         .attr('y', y * 1.1)
         .attr('text-anchor', 'middle')
         .attr('font-size', '10px')
+        .style('fill', '#fff')
         .text(stat.label);
     });
 
@@ -323,6 +335,7 @@ export class BeeswarmChartComponent {
       .attr('text-anchor', 'middle')
       .attr('font-size', '14px')
       .attr('font-weight', 'bold')
+      .style('fill', '#fff')
       .text(`${player.player}, ${player.position}`);
   }
 
