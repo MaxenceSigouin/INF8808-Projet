@@ -1,43 +1,52 @@
 import * as d3 from 'd3';
 import { Component } from '@angular/core';
 import { DataProcessingService } from '../../../services/data-processsing/data-processing.service';
+import {
+  MatSlideToggleChange,
+  MatSlideToggleModule,
+} from '@angular/material/slide-toggle';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-bubble-chart',
-  imports: [],
+  imports: [MatSlideToggleModule, FormsModule],
   templateUrl: './bubble-chart.component.html',
   styleUrl: './bubble-chart.component.css',
 })
 export class BubbleChartComponent {
   // private rowSpacing: number = 70;
+  isTotalShow = true;
   private yearGroups: string[] = [];
   private countByCountry: Record<string, Record<string, number>> = {};
+  private totalByCountry: Record<string, number> = {};
   private yScale: d3.ScalePoint<string> = d3.scalePoint();
   private xScale: d3.ScalePoint<string> = d3.scalePoint();
+  private xScaleCollapse: d3.ScalePoint<string> = d3.scalePoint();
   private sizeScale: d3.ScaleLinear<number, number> = d3.scaleLinear();
   private allYears: Set<number> = new Set();
-  private margin = { top: 40, right: 350, bottom: 40, left: 350 };
+  private maxDomainValue: number = 0;
+  private margin = { top: 40, right: 300, bottom: 40, left: 300 };
 
   constructor(private dataSrv: DataProcessingService) {}
 
   ngAfterViewInit() {
     this.preprocess().then((country) => {
       this.countByCountry = country;
-      console.log(this.countByCountry);
       this.buildGraph();
       this.setYScale();
       this.drawYScale();
       this.setXScale();
-      this.drawXScale();
-      this.setSizeScale();
+      this.setXScaleCollapse();
+      if (this.isTotalShow) {
+        this.drawXScaleCollapse();
+      } else {
+        this.drawXScale();
+      }
+      this.setMaxDomainValue();
 
       this.drawData();
       this.addTooltip();
-      d3.selectAll('.axis path').style('opacity', '0');
-      d3.selectAll('.axis text')
-        .style('font-family', 'Roboto')
-        .style('cursor', 'default');
-      d3.selectAll('.tick line').style('visibility', 'hidden');
+      this.removeScaleLine();
     });
   }
 
@@ -64,11 +73,12 @@ export class BubbleChartComponent {
             }
             acc[row['nationality']][rowYearGroup] =
               (acc[row['nationality']][rowYearGroup] || 0) + 1;
-            acc[row['nationality']]['total'] =
-              (acc[row['nationality']]['total'] || 0) + 1;
+
+            this.totalByCountry[row['nationality']] =
+              (this.totalByCountry[row['nationality']] || 0) + 1;
             return acc;
           }, {})
-        ).sort((a, b) => b[1]['total'] - a[1]['total']);
+        ).sort((a, b) => this.totalByCountry[b[0]] - this.totalByCountry[a[0]]);
 
         const top7 = countByCountry.slice(0, 7);
 
@@ -80,6 +90,23 @@ export class BubbleChartComponent {
             });
             return acc;
           }, {});
+
+        const totalSort = Object.entries(this.totalByCountry).sort(
+          (a, b) => b[1] - a[1]
+        );
+        const totalTop7 = totalSort.slice(0, 7);
+
+        const totalOthersCount = totalSort
+          .slice(7)
+          .reduce((acc: number, entry) => {
+            return acc + entry[1];
+          }, 0);
+
+        this.totalByCountry = Object.fromEntries(
+          totalOthersCount !== null
+            ? totalTop7.concat([['Other', totalOthersCount]])
+            : totalTop7
+        );
 
         return Object.fromEntries(
           othersCount !== null ? top7.concat([['Other', othersCount]]) : top7
@@ -113,15 +140,12 @@ export class BubbleChartComponent {
     const node = d3.select('#bubble-chart-container').node() as HTMLElement;
     if (node) {
       const containerBound = node.getBoundingClientRect();
-
       this.yScale
         .domain(
           Object.keys(this.countByCountry).sort((a, b) => {
             if (a === 'Other') return 1; // Push 'Other' to the end
             if (b === 'Other') return -1; // Push 'Other' to the end
-            return (
-              this.countByCountry[b]['total'] - this.countByCountry[a]['total']
-            ); // Sort by count descending
+            return this.totalByCountry[b] - this.totalByCountry[a]; // Sort by count descending
           })
         )
         .range([
@@ -137,11 +161,9 @@ export class BubbleChartComponent {
       .attr('class', 'y axis')
       .attr(
         'transform',
-        `translate(${-this.margin.left / 4}, ${this.margin.top / 2})`
+        `translate(${-this.margin.left / 6}, ${this.margin.top / 2})`
       )
-      .call(d3.axisLeft(this.yScale))
-      .selectAll('text')
-      .style('font-size', '16px');
+      .call(d3.axisLeft(this.yScale));
   }
 
   setXScale() {
@@ -162,9 +184,24 @@ export class BubbleChartComponent {
       .append('g')
       .attr('class', 'x axis')
       .attr('transform', `translate(0, ${-this.margin.top / 2 + 5})`)
-      .call(d3.axisTop(this.xScale))
-      .selectAll('text')
-      .style('font-size', '16px');
+      .call(d3.axisTop(this.xScale));
+  }
+
+  setXScaleCollapse() {
+    const node = d3.select('#bubble-chart-container').node() as HTMLElement;
+    if (node) {
+      const containerBound = node.getBoundingClientRect();
+
+      this.xScaleCollapse.domain(['Total']).range([0, 0]);
+    }
+  }
+
+  drawXScaleCollapse() {
+    d3.select('svg #graph-g')
+      .append('g')
+      .attr('class', 'x axis')
+      .attr('transform', `translate(0, ${-this.margin.top / 2 + 5})`)
+      .call(d3.axisTop(this.xScaleCollapse));
   }
 
   getYearGroup(numGroups: number) {
@@ -193,15 +230,72 @@ export class BubbleChartComponent {
     }
   }
 
-  setSizeScale() {
-    const maxTotal = Math.max(
-      ...Object.values(this.countByCountry).map(
-        (countryData) => countryData['total']
-      )
-    );
-    this.sizeScale.domain([0, maxTotal]).range([3, 150]);
+  setMaxDomainValue() {
+    if (this.isTotalShow) {
+      this.maxDomainValue = Math.max(
+        ...Object.values(this.totalByCountry).map((total) => total)
+      );
+    } else {
+      this.maxDomainValue = 0;
+      Object.values(this.countByCountry).forEach((country) => {
+        Object.values(country).forEach((count) => {
+          if (this.maxDomainValue < count) {
+            this.maxDomainValue = count;
+          }
+        });
+      });
+    }
+    this.setSizeScale();
   }
+
+  setSizeScale() {
+    this.sizeScale.domain([0, this.maxDomainValue]).range([3, 40]);
+  }
+
+  drawData() {
+    d3.selectAll('.country').remove();
+    if (this.isTotalShow) {
+      d3.select('svg #graph-g')
+        .append('g')
+        .attr('class', 'country')
+        .selectAll('.count')
+        .data(Object.entries(this.totalByCountry))
+        .join('g')
+        .attr('class', 'count')
+        .append('circle')
+        .attr(
+          'transform',
+          (d) =>
+            `translate( ${this.xScaleCollapse('Total')}, ${
+              (this.yScale(d[0]) ?? 0) + this.margin.top / 2
+            })`
+        )
+        .attr('r', (d) => this.sizeScale(d[1]))
+        .style('fill', '#50a1df');
+    } else {
+      d3.select('svg #graph-g')
+        .selectAll('.country')
+        .data(Object.entries(this.countByCountry))
+        .join('g')
+        .attr('class', 'country')
+        .attr(
+          'transform',
+          (d) =>
+            `translate(0, ${(this.yScale(d[0]) ?? 0) + this.margin.top / 2})`
+        )
+        .selectAll('.count')
+        .data((d) => Object.entries(d[1]))
+        .join('g')
+        .attr('class', 'count')
+        .append('circle')
+        .attr('transform', (d) => `translate(${this.xScale(d[0])}, 0)`)
+        .attr('r', (d) => this.sizeScale(d[1]))
+        .style('fill', '#50a1df');
+    }
+  }
+
   addTooltip() {
+    d3.select('.tooltip').remove();
     const tooltip = d3
       .select('#bubble-chart-container')
       .append('div')
@@ -234,27 +328,26 @@ export class BubbleChartComponent {
         d3.select(this).style('stroke', 'none');
       });
   }
-  drawData() {
-    console.log(Object.entries(this.countByCountry));
-    d3.select('svg #graph-g')
-      .selectAll('.country')
-      .data(Object.entries(this.countByCountry))
-      .join('g')
-      .attr('class', 'country')
-      .attr(
-        'transform',
-        (d) => `translate(0, ${(this.yScale(d[0]) ?? 0) + this.margin.top / 2})`
-      )
-      .selectAll('.count')
-      .data((d) =>
-        Object.entries(d[1]).filter(([key, value]) => key !== 'total')
-      )
-      .join('g')
-      .attr('class', 'count')
-      .append('circle')
-      .attr('transform', (d) => `translate(${this.xScale(d[0])}, 0)`)
-      .attr('r', (d) => this.sizeScale(d[1]))
-      .style('fill', '#50a1df'); //
-    // .on('mouseover', () => {});
+
+  removeScaleLine() {
+    d3.selectAll('.axis path').style('opacity', '0');
+    d3.selectAll('.axis text')
+      .style('font-family', 'Roboto')
+      .style('cursor', 'default')
+      .style('font-size', '16px');
+    d3.selectAll('.tick line').style('visibility', 'hidden');
+  }
+
+  onSlideToggle(event: MatSlideToggleChange) {
+    d3.select('.x').remove();
+    if (event.checked) {
+      this.drawXScaleCollapse();
+    } else {
+      this.drawXScale();
+    }
+    this.removeScaleLine();
+    this.setMaxDomainValue();
+    this.drawData();
+    this.addTooltip();
   }
 }

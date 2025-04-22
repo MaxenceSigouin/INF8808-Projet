@@ -4,5 +4,16 @@
 </h1>
 
 <div class="viz-container">
+  <div
+    class="flex-row"
+    style="align-items: center; height: min-content; white-space: nowrap"
+  >
+    <mat-slide-toggle
+      (change)="onSlideToggle($event)"
+      [(ngModel)]="isTotalShow"
+    ></mat-slide-toggle>
+    Show total
+  </div>
+
   <div id="bubble-chart-container"></div>
 </div>
