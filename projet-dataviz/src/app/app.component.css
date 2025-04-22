@@ -9,6 +9,7 @@ app-sidebar {
 
 .content {
   flex: 1;
+  height: calc(100vh - 2rem);
   padding: 1rem;
   background-color: #fff;
   overflow-x: hidden;
