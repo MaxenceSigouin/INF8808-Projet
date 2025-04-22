@@ -1,6 +1,6 @@
 .viz-container {
   /*50 px title padding, 40px h1 height, */
-  height: calc(100% - 50px - 40px - 35px);
+  height: calc(100% - 50px - 40px - 100px);
   display: flex;
   flex-direction: row;
 }
