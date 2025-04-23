@@ -14,7 +14,7 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './bubble-chart.component.css',
 })
 export class BubbleChartComponent {
-  isTotalShow = true;
+  isTotalShow = false;
   private yearGroups: string[] = [];
   private countByCountry: Record<string, Record<string, number>> = {};
   private totalByCountry: Record<string, number> = {};
@@ -143,7 +143,7 @@ export class BubbleChartComponent {
               `translate(0, ${(this.yScale(d[0]) ?? 0) + this.margin.top / 2})`
           )
           .selectAll('.count')
-          .data((d) => ([d]))
+          .data((d) => [d])
           .join('g')
           .attr('class', 'count')
           .append('circle')
@@ -165,7 +165,7 @@ export class BubbleChartComponent {
               `translate(0, ${(this.yScale(d[0]) ?? 0) + this.margin.top / 2})`
           )
           .selectAll('.count')
-          .data((d) => (Object.entries(d[1])))
+          .data((d) => Object.entries(d[1]))
           .join('g')
           .attr('class', 'count')
           .append('circle')
