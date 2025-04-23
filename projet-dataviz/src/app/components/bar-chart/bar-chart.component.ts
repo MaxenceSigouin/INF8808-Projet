@@ -29,7 +29,7 @@ export class BarChartComponent implements OnInit {
     'defensemen',
     'goalie',
   ]);
-  private margin = { top: 40, right: 20, bottom: 90, left: 90 };
+  private margin = { top: 80, right: 80, bottom: 90, left: 150 };
   private width =
     window.innerWidth - this.margin.left - this.margin.right - 320;
   private height =
@@ -121,7 +121,7 @@ export class BarChartComponent implements OnInit {
       })
       .filter((d) => d !== null); // remove nulls
   }
-  
+
   // Counting the amount of points by year for each decade column
   private countYAxis(data: any[]): any[] {
     const aggregatedData: any[] = [];
