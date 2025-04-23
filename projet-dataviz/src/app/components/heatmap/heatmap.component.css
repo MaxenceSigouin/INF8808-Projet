@@ -14,6 +14,15 @@
   padding-right: 20px;
 }
 
+#heatmap-container {
+  padding-left: 50px;
+  padding-top: 25px;
+}
+
+#heatmap-options {
+  padding-top: 20px;
+}
+
 td {
   padding-right: 8px;
 }

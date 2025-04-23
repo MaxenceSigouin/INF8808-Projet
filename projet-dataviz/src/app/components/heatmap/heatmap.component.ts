@@ -25,8 +25,8 @@ import * as d3 from 'd3';
 })
 export class HeatmapComponent {
   margin = { top: 40, right: 130, bottom: 90, left: 90 };
-  DEFAULT_CHART_HEIGHT: number = window.innerHeight - 200; // Default to 800 if window height is unavailable
-  DEFAULT_CHART_WIDTH: number = window.innerWidth - 520;
+  DEFAULT_CHART_HEIGHT: number = window.innerHeight - 300; // Default to 800 if window height is unavailable
+  DEFAULT_CHART_WIDTH: number = window.innerWidth - 600;
   xScaleHeight: number = this.DEFAULT_CHART_HEIGHT;
   yScaleWidth: number = this.DEFAULT_CHART_WIDTH;
 
