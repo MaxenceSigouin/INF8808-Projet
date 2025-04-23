@@ -6,63 +6,81 @@
   <div id="heatmap-options">
     <table>
       <td>
-        <mat-form-field class="field-selector">
+        <mat-form-field  class="field-selector">
           <mat-label>First Year</mat-label>
-          <input matInput
-                 type="number"
-                 [(ngModel)]="periodStart"
-                 (keyup.enter)="updateHeatmap()"
+          <mat-select
+            [(ngModel)]="periodStart"
+            (ngModelChange)="updateHeatmap()"
           >
+            @for (year of startDraftYears; track year) {
+            <mat-option [value]="year">{{ year }}</mat-option>
+            }
+          </mat-select>
         </mat-form-field>
       </td>
       <td>
         <mat-form-field class="field-selector">
           <mat-label>Last Year</mat-label>
-          <input matInput
-                 type="number"
-                 [(ngModel)]="periodEnd"
-                 (keyup.enter)="updateHeatmap()"
+          <mat-select
+            [(ngModel)]="periodEnd"
+            (ngModelChange)="updateHeatmap()"
           >
+            @for (year of endDraftYears; track year) {
+            <mat-option [value]="year">{{ year }}</mat-option>
+            }
+          </mat-select>
         </mat-form-field>
       </td>
       <td>
-        <mat-form-field class="field-selector">
+        <mat-form-field  class="field-selector">
           <mat-label>First Draft Rank</mat-label>
-          <input matInput
-                 type="number"
-                 [(ngModel)]="rankStart"
-                 (keyup.enter)="updateHeatmap()"
+          <mat-select
+            [(ngModel)]="rankStart"
+            (ngModelChange)="updateHeatmap()"
           >
+            @for (rank of startRanks; track rank) {
+            <mat-option [value]="rank">{{ rank }}</mat-option>
+            }
+          </mat-select>
         </mat-form-field>
       </td>
       <td>
         <mat-form-field class="field-selector">
           <mat-label>Last Draft Rank</mat-label>
-          <input matInput
-                 type="number"
-                 [(ngModel)]="rankEnd"
-                 (keyup.enter)="updateHeatmap()"
+          <mat-select
+            [(ngModel)]="rankEnd"
+            (ngModelChange)="updateHeatmap()"
           >
+            @for (rank of endRanks; track rank) {
+            <mat-option [value]="rank">{{ rank }}</mat-option>
+            }
+          </mat-select>
         </mat-form-field>
       </td>
       <td>
         <mat-form-field class="large-field-selector">
           <mat-label>Minimum Amount of Games</mat-label>
-          <input matInput
-                 type="number"
-                 [(ngModel)]="gameThreshold"
-                 (keyup.enter)="updateHeatmap()"
+          <mat-select
+            [(ngModel)]="gameThreshold"
+            (ngModelChange)="updateHeatmap()"
           >
+            @for (threshold of allGameAmounts; track threshold) {
+            <mat-option [value]="threshold">{{ threshold }}</mat-option>
+            }
+          </mat-select>
         </mat-form-field>
       </td>
       <td>
         <mat-form-field class="large-field-selector">
           <mat-label>Point Range Amount</mat-label>
-          <input matInput
-                 type="number"
-                 [(ngModel)]="pointClassesAmount"
-                 (keyup.enter)="updateHeatmap()"
+          <mat-select
+            [(ngModel)]="pointClassesAmount"
+            (ngModelChange)="updateHeatmap()"
           >
+            @for (amount of allPointClassesAmounts; track amount) {
+            <mat-option [value]="amount">{{ amount }}</mat-option>
+            }
+          </mat-select>
         </mat-form-field>
       </td>
     </table>

@@ -36,12 +36,28 @@ export class HeatmapComponent {
     d3.interpolateRgb('rgb(255, 255, 255)', 'rgb(215, 48, 39)')
   );
 
+  allDraftYears: number[] = [];
+  allRanks: number[] = [];
+  allGameAmounts: number[] = [];
+  allPointClassesAmounts: number[] = [];
+
   periodStart: number = 1980;
+  startDraftYears: number[] = [];
+
   periodEnd: number = 2020;
+  endDraftYears: number[] = [];
+
   rankStart: number = 1;
+  startRanks: number[] = [];
+
   rankEnd: number = 50;
+  endRanks: number[] = [];
+
   gameThreshold: number = 1;
+
   pointClassesAmount: number = 20;
+  maxPointClassesAmount: number = 50;
+
   currentData: HeatmapPlayerClass[] = [];
 
   minPoints: number = 0;
@@ -59,6 +75,14 @@ export class HeatmapComponent {
 
   ngAfterViewInit() {
     this.updateHeatmap();
+    this.updateSelectors();
+  }
+
+  updateSelectors() {
+    this.startDraftYears = this.allDraftYears.filter(year => year < this.periodEnd);
+    this.endDraftYears   = this.allDraftYears.filter(year => year > this.periodStart);
+    this.startRanks      = this.allRanks     .filter(rank => rank < this.rankEnd);
+    this.endRanks        = this.allRanks     .filter(rank => rank > this.rankStart);
   }
 
   updateHeatmap() {
@@ -77,7 +101,22 @@ export class HeatmapComponent {
     });
   }
 
+  setDropdownOptions(allData: Player[]) {
+    this.allDraftYears  = Array.from(new Set(allData.map((d) => d.year)));
+    this.allRanks       = Array.from(new Set(allData.map((d) => d.overall_pick)));
+    this.allGameAmounts = Array.from(new Set(allData.map((d) => d.games_played))).sort((a, b) => {
+      return a-b;
+    });
+    console.log(this.allGameAmounts);
+    for (let i = 1; i < this.maxPointClassesAmount; i++) {
+      this.allPointClassesAmounts.push(i);
+    }
+  }
+
   updateData(allData: Player[]) {
+    this.setDropdownOptions(allData);
+    this.updateSelectors();
+
     const data = allData.filter(
       (d) =>
         d.year >= this.periodStart &&
@@ -170,8 +209,8 @@ export class HeatmapComponent {
   }
 
   createHeatmap() {
-    d3.select('svg').remove();
-    d3.selectAll('.tooltip').remove(); // Remove tooltips
+    d3.selectAll('svg').remove();
+    d3.selectAll('.tooltip').remove();
 
     this.colorScale.domain([
       0,
@@ -248,6 +287,7 @@ export class HeatmapComponent {
     const svg = d3.select('#heatmap');
     svg
       .append('g')
+      .attr('class', 'axis')
       .attr('transform', `translate(0, ${this.xScaleHeight})`)
       .call(d3.axisBottom(this.xScale))
       .select('.domain')
@@ -255,6 +295,7 @@ export class HeatmapComponent {
 
     svg
       .append('text')
+      .attr('class', 'axis')
       .attr('text-anchor', 'middle')
       .attr('x', this.DEFAULT_CHART_WIDTH / 2)
       .attr('y', this.xScaleHeight + this.margin.bottom - 30)
@@ -266,6 +307,7 @@ export class HeatmapComponent {
     const svg = d3.select('#heatmap');
     svg
       .append('g')
+      .attr('class', 'axis')
       .attr('transform', `translate(${this.yScaleWidth}, 0)`)
       .call(d3.axisRight(this.yScale).tickFormat((d, i) => this.tickLabels[i]))
       .select('.domain')
@@ -273,6 +315,7 @@ export class HeatmapComponent {
 
     svg
       .append('text')
+      .attr('class', 'axis')
       .attr('text-anchor', 'middle')
       .attr(
         'transform',
