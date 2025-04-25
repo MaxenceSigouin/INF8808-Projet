@@ -6,6 +6,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
+
 @Component({
   selector: 'app-bar-chart',
   imports: [
@@ -20,37 +21,62 @@ import { MatFormFieldModule } from '@angular/material/form-field';
   styleUrls: ['./bar-chart.component.css'],
 })
 export class BarChartComponent implements OnInit {
+  // Original data loaded from the CSV file
   private originalData: any[] = [];
+
+  // Processed data for the chart
   private data: any[] = [];
+
+  // D3 SVG container
   private svg: any;
+
+  // Predefined nationalities for the legend
   private predefinedNationalities: string[] = [];
+
+  // Form control for selecting positions
   positionsControl = new FormControl<string[]>([
     'forward',
     'defensemen',
     'goalie',
   ]);
+
+  // Margins for the chart
   private margin = { top: 80, right: 80, bottom: 90, left: 150 };
+
+  // Chart dimensions
   private width =
     window.innerWidth - this.margin.left - this.margin.right - 320;
   private height =
     window.innerHeight - this.margin.top - this.margin.bottom - 200;
+
+  // Selected categories for filtering
   selectedCategories: { [key: string]: boolean } = {
     forward: true, // includes LW, C, RW
     defensemen: true, // includes D
-    goalie: true, // goalie includes G
+    goalie: true, // includes G
   };
+
+  // Mapping of positions to their respective categories
   positionMapping: { [key: string]: string[] } = {
     forward: ['LW', 'C', 'RW'],
     defensemen: ['D'],
     goalie: ['G'],
   };
+
+  // Currently selected position
   positionSelected: string = 'forward';
+
   constructor(private chartStyleSrv: ChartStyleManagerService) {}
 
+  /**
+   * Lifecycle hook that initializes the chart.
+   * Loads the data, creates the SVG container, and sets up resize handling.
+   */
   ngOnInit(): void {
     this.predefinedNationalities = this.chartStyleSrv.color.domain();
     d3.csv('/assets/nhldraft.csv')
       .then((data) => {
+        // Process the data to group non-predefined nationalities into "Others"
         data.forEach((d: any) => {
           if (!this.chartStyleSrv.color.domain().includes(d['nationality'])) {
             d['nationality'] = 'Others';
@@ -62,7 +88,7 @@ export class BarChartComponent implements OnInit {
         this.createSvg();
         this.updateFilteredData();
 
-        // Add a resize listener
+        // Add a resize listener to handle window resizing
         window.addEventListener('resize', () => this.onResize());
       })
       .catch((error) => {
@@ -70,6 +96,9 @@ export class BarChartComponent implements OnInit {
       });
   }
 
+  /**
+   * Handles window resizing by recalculating dimensions and redrawing the chart.
+   */
   private onResize(): void {
     // Recalculate dimensions
     this.width = window.innerWidth - this.margin.left - this.margin.right - 100;
@@ -82,18 +111,25 @@ export class BarChartComponent implements OnInit {
     this.updateFilteredData();
   }
 
+  /**
+   * Updates the filtered data based on the selected positions and redraws the chart.
+   */
   updateFilteredData(): void {
     let selectedPositions: string[] = [];
     this.positionsControl.value?.forEach((postion: string) => {
       selectedPositions.push(...this.positionMapping[postion]);
     });
 
+    // Filter the data based on the selected positions
     let filteredData = this.originalData.filter(
       (d) => selectedPositions.includes(d['position'] as string) ?? false
     );
+
+    // Preprocess and aggregate the data
     const processedData = this.preprocessData(filteredData);
     this.data = this.countYAxis(processedData);
 
+    // Clear the SVG and redraw the bars
     this.svg.selectAll('*').remove();
     this.drawBars();
   }
@@ -111,7 +147,7 @@ export class BarChartComponent implements OnInit {
       .map((d) => {
         const year = +d['year'];
         if (year >= 2020 && year <= 2022) {
-          return null; // remove this entry
+          return null; // Remove this entry
         } else {
           const decadeStart = Math.floor(year / 10) * 10;
           const decadeEnd = decadeStart + 9;
@@ -119,13 +155,18 @@ export class BarChartComponent implements OnInit {
           return d;
         }
       })
-      .filter((d) => d !== null); // remove nulls
+      .filter((d) => d !== null); // Remove nulls
   }
 
-  // Counting the amount of points by year for each decade column
+  /**
+   * Aggregates the data by decade and nationality, calculating the total points.
+   * @param data - The preprocessed data.
+   * @returns The aggregated data.
+   */
   private countYAxis(data: any[]): any[] {
     const aggregatedData: any[] = [];
 
+    // Group and sum the data by decade and nationality
     const nested = d3.rollup(
       data,
       (v) => d3.sum(v, (d) => +d.points),
@@ -133,6 +174,7 @@ export class BarChartComponent implements OnInit {
       (d: any) => d.nationality
     );
 
+    // Format the aggregated data
     nested.forEach((natMap, decade) => {
       const obj: any = { decade };
       let total = 0;
@@ -150,6 +192,9 @@ export class BarChartComponent implements OnInit {
     return aggregatedData;
   }
 
+  /**
+   * Creates the SVG container for the chart.
+   */
   private createSvg(): void {
     this.svg = d3
       .select('figure#barChart')
@@ -160,13 +205,16 @@ export class BarChartComponent implements OnInit {
       .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
   }
 
+  /**
+   * Draws the stacked bar chart.
+   */
   private drawBars(): void {
-    // Create the X scale with decades.
+    // Create the X scale with decades
     const x = d3
       .scaleBand()
       .domain(
         this.data
-          .slice() // create a copy to avoid mutating original
+          .slice() // Create a copy to avoid mutating original
           .sort((a: any, b: any) => {
             const aStart = parseInt(a.decade.split('-')[0]);
             const bStart = parseInt(b.decade.split('-')[0]);
@@ -177,18 +225,18 @@ export class BarChartComponent implements OnInit {
       .range([0, this.width])
       .padding(0.2);
 
-    // Y scale: based on the total counts per decade.
+    // Create the Y scale based on the total counts per decade
     const maxTotal = d3.max(this.data, (d: any) => d.total)!;
     const y = d3.scaleLinear().domain([0, maxTotal]).range([this.height, 0]);
 
-    // Use colors from ChartStyleManagerService.
+    // Use colors from ChartStyleManagerService
     const colorMapping = this.chartStyleSrv.customColors;
 
-    // Prepare the data for stacking based on predefined nationalities.
+    // Prepare the data for stacking based on predefined nationalities
     const stack = d3.stack().keys(this.predefinedNationalities);
     const stackedData = stack(this.data);
 
-    // Draw the stacked bars.
+    // Draw the stacked bars
     const layer = this.svg
       .selectAll('g.layer')
       .data(stackedData)
@@ -212,7 +260,7 @@ export class BarChartComponent implements OnInit {
       .attr('height', (d: any) => y(d[0]) - y(d[1]))
       .attr('width', x.bandwidth());
 
-    // Add tooltip functionality (unchanged).
+    // Add tooltip functionality
     const tooltip = d3
       .select('body')
       .append('div')
@@ -241,7 +289,7 @@ export class BarChartComponent implements OnInit {
         tooltip.transition().duration(500).style('opacity', 0);
       });
 
-    // Add the X axis.
+    // Add the X axis
     this.svg
       .append('g')
       .attr('transform', `translate(0, ${this.height})`)
@@ -251,6 +299,7 @@ export class BarChartComponent implements OnInit {
       .style('text-anchor', 'end')
       .style('font-size', '14px');
 
+    // Add the Y axis
     this.svg
       .append('g')
       .call(d3.axisLeft(y))
@@ -262,6 +311,10 @@ export class BarChartComponent implements OnInit {
     this.drawLegend(colorMapping);
   }
 
+  /**
+   * Draws the legend for the chart.
+   * @param colorMapping - The mapping of nationalities to colors.
+   */
   private drawLegend(colorMapping: Record<string, string>): void {
     const legend = this.svg
       .append('g')
@@ -283,8 +336,11 @@ export class BarChartComponent implements OnInit {
     });
   }
 
+  /**
+   * Adds labels to the chart, including the title and axis labels.
+   */
   private addLabels(): void {
-    // Chart title.
+    // Chart title
     this.svg
       .append('text')
       .attr('x', this.width / 2)
@@ -295,7 +351,7 @@ export class BarChartComponent implements OnInit {
       .style('font-family', 'Orbitron')
       .text('How NHL Draft Nationalities Performed Across Decades (1963–2022)');
 
-    // X-axis label.
+    // X-axis label
     this.svg
       .append('text')
       .attr('x', this.width / 2)
@@ -304,7 +360,7 @@ export class BarChartComponent implements OnInit {
       .style('font-size', '18px')
       .text('Decade');
 
-    // Y-axis label.
+    // Y-axis label
     this.svg
       .append('text')
       .attr('transform', 'rotate(-90)')
