@@ -23,18 +23,28 @@ import { MatFormFieldModule } from '@angular/material/form-field';
   styleUrls: ['./beeswarm-chart.component.css'],
 })
 export class BeeswarmChartComponent {
+  // Default chart dimensions
   DEFAULT_CHART_HEIGTH: number = window.innerHeight - 100;
   DEFAULT_CHART_WIDTH: number = window.innerWidth - 420;
+
+  // Dimensions for the "Grouped by Nationality" view
   VIEW_BY_NATION_CHART_HEIGTH: number = 1400;
   VIEW_BY_NATION_CHART_WIDTH: number = this.DEFAULT_CHART_WIDTH;
+
+  // Current view mode (default, nationality, position)
   viewSelected: string = 'default';
+
+  // Scales for the chart
   xScale: d3.ScaleLinear<number, number> | undefined;
   yScale: d3.ScalePoint<string> | undefined;
   radiusScale: d3.ScaleLinear<number, number> | undefined;
+
+  // Data for the chart
   currentData: Player[] = [];
   draftYears: number[] = [];
   draftYearSelected: number = 2010;
 
+  // Statistics available for selection
   statsToShow: string[] = ['points', 'goals', 'assists', 'games_played'];
   statsSelected: string = 'points';
 
@@ -43,16 +53,27 @@ export class BeeswarmChartComponent {
     private chartStyleSrv: ChartStyleManagerService
   ) {}
 
+  /**
+   * Lifecycle hook that runs after the view is initialized.
+   * Initializes the draft years and renders the initial beeswarm chart.
+   */
   ngAfterViewInit() {
     this.updateDraftYearsAvailable();
     this.updateBeeswarmChart(this.draftYearSelected, this.statsSelected);
   }
 
+  /**
+   * Creates the beeswarm chart based on the selected statistic.
+   * @param stat - The statistic to visualize (e.g., 'points', 'goals').
+   */
   createBeeswarmChart(stat: keyof Player = 'points') {
-    d3.select('#beeswarm-chart').remove(); // Remove the SVG
-    d3.selectAll('.tooltip').remove(); // Remove tooltips
-    d3.selectAll('.chart-title').remove(); // Remove the title
-    d3.select('#legend-container').remove(); // Remove the legend
+    // Remove existing chart elements
+    d3.select('#beeswarm-chart').remove();
+    d3.selectAll('.tooltip').remove();
+    d3.selectAll('.chart-title').remove();
+    d3.select('#legend-container').remove();
+
+    // Add chart title
     const title = d3
       .select('#beeswarm-container')
       .append('div')
@@ -65,6 +86,8 @@ export class BeeswarmChartComponent {
       .text(
         'Behind the Draft: How NHL Players Performed After Being Selected (as of 2022)'
       );
+
+    // Define scales
     const maxRadius =
       Math.min(this.DEFAULT_CHART_HEIGTH, this.DEFAULT_CHART_WIDTH) * 0.04;
     this.radiusScale = d3
@@ -82,6 +105,7 @@ export class BeeswarmChartComponent {
       .domain(this.chartStyleSrv.color.domain())
       .range([200, this.DEFAULT_CHART_HEIGTH - 100]);
 
+    // Create simulation for positioning circles
     const simulation = d3
       .forceSimulation(this.currentData)
       .force(
@@ -95,13 +119,16 @@ export class BeeswarmChartComponent {
       )
       .stop();
 
+    // Run the simulation
     for (let i = 0; i < 300; ++i) simulation.tick();
 
+    // Save the computed positions
     this.currentData.forEach((d) => {
       d['x0'] = d.x!;
       d['y0'] = d.y!;
     });
 
+    // Create tooltip
     const tooltip = d3
       .select('#beeswarm-container')
       .append('div')
@@ -114,6 +141,7 @@ export class BeeswarmChartComponent {
       .style('pointer-events', 'none')
       .style('opacity', 0);
 
+    // Create SVG container
     const svg = d3
       .select('#beeswarm-container')
       .append('svg')
@@ -121,6 +149,7 @@ export class BeeswarmChartComponent {
       .attr('height', this.DEFAULT_CHART_HEIGTH)
       .attr('width', this.DEFAULT_CHART_WIDTH);
 
+    // Draw circles
     svg
       .selectAll('.beeswarm-circle')
       .data(this.currentData)
@@ -139,7 +168,8 @@ export class BeeswarmChartComponent {
       .attr('stroke', '#333')
       .attr('stroke-width', 0.5)
       .on('mouseover', (event, d) => {
-        const [x, y] = d3.pointer(event); // Get mouse position relative to the container
+        // Show tooltip
+        const [x, y] = d3.pointer(event);
 
         tooltip.transition().duration(200).style('opacity', 1);
 
@@ -153,14 +183,15 @@ export class BeeswarmChartComponent {
             Games: ${d.games_played}<br/>
             Click to reveal performance breakdown.`
           )
-          .style('left', `${x + 30}px`) // Adjust tooltip position relative to the mouse
+          .style('left', `${x + 30}px`)
           .style('top', `${y + 30}px`);
       })
       .on('mouseout', () => {
-        tooltip.transition().duration(200).style('opacity', 0);
+        tooltip.transition().duration(200).style('opacity', 0); // Hide tooltip
       })
       .on('click', (event, d) => this.createRadarChart(d));
 
+    // Add X-axis
     svg
       .append('g')
       .attr('id', 'x-axis')
@@ -175,6 +206,7 @@ export class BeeswarmChartComponent {
       .attr('text-anchor', 'middle')
       .text('Overall Pick');
 
+    // Add gridlines
     svg
       .selectAll('.x-axis-line')
       .data(this.xScale ? this.xScale.ticks(10) : [])
@@ -189,10 +221,15 @@ export class BeeswarmChartComponent {
       .attr('stroke-dasharray', '4')
       .attr('stroke-width', 1);
 
+    // Add legend and transition view
     this.createLegend();
     this.transitionView(stat);
   }
 
+  /**
+   * Creates the radar chart for a selected player.
+   * @param player - The player to visualize in the radar chart.
+   */
   createRadarChart(player: Player): void {
     // Remove any previous radar chart if it exists
     d3.select('#radar-chart').remove();
@@ -205,7 +242,7 @@ export class BeeswarmChartComponent {
     const cx = radarWidth / 2;
     const cy = radarHeight / 2;
 
-    // Compute maximum values for each stat based on the current year's players
+    // Compute maximum values for each stat based on the current draft year
     const maxGoals = d3.max(this.currentData, (d) => d.goals) || 1;
     const maxAssists = d3.max(this.currentData, (d) => d.assists) || 1;
     const maxPoints = d3.max(this.currentData, (d) => d.points) || 1;
@@ -231,7 +268,7 @@ export class BeeswarmChartComponent {
       .style('pointer-events', 'none')
       .style('opacity', 0);
 
-    // Create SVG container for the radar chart and position it at the top left
+    // Create SVG container for the radar chart
     const svg = d3
       .select('#beeswarm-container')
       .append('svg')
@@ -260,7 +297,7 @@ export class BeeswarmChartComponent {
       .attr('font-weight', 'bold')
       .attr('cursor', 'pointer')
       .style('fill', 'red')
-      .text('✕') // you can also use a nicer X symbol here
+      .text('✕')
       .on('click', () => {
         svg.remove();
       });
@@ -340,6 +377,10 @@ export class BeeswarmChartComponent {
       .text(`${player.player}, ${player.position}`);
   }
 
+  /**
+   * Transitions the view of the beeswarm chart based on the selected view mode.
+   * @param stat - The statistic to visualize.
+   */
   transitionView(stat: keyof Player) {
     const dur = 1000;
     d3.selectAll('.group-label').remove();
@@ -420,7 +461,7 @@ export class BeeswarmChartComponent {
 
         const groupedByPosition = d3.group(this.currentData, (d) => d.position);
 
-        const orderedPositions = ['F', 'D', 'G']; // Define the desired order
+        const orderedPositions = ['F', 'D', 'G']; // Define the desired order for the position view
         const sortedGroupedByPosition = new Map(
           orderedPositions.map((key) => [key, groupedByPosition.get(key) || []])
         );
@@ -550,12 +591,20 @@ export class BeeswarmChartComponent {
     }
   }
 
+  /**
+   * Updates the available draft years for selection.
+   */
   updateDraftYearsAvailable() {
     this.dataSrv.getDataAsPlayer().then((data: Player[]) => {
       this.draftYears = Array.from(new Set(data.map((d) => d.year)));
     });
   }
 
+  /**
+   * Updates the beeswarm chart based on the selected year and statistic.
+   * @param year - The draft year to filter data by.
+   * @param stat - The statistic to visualize.
+   */
   updateBeeswarmChart(year: number, stat: keyof Player) {
     this.dataSrv.getDataAsPlayer().then((allData: Player[]) => {
       const data = allData.filter((d) => d.year === year);
@@ -582,6 +631,9 @@ export class BeeswarmChartComponent {
     });
   }
 
+  /**
+   * Creates the legend for the beeswarm chart.
+   */
   createLegend() {
     const colorScale = this.chartStyleSrv.color;
     const colorMap = this.chartStyleSrv.customColors;
