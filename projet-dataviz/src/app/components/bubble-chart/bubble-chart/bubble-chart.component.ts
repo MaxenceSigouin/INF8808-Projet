@@ -14,20 +14,39 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './bubble-chart.component.css',
 })
 export class BubbleChartComponent {
+  // Whether to show total counts or grouped counts
   isTotalShow = false;
+
+  // Year groups for the X-axis
   private yearGroups: string[] = [];
+
+  // Data aggregated by country and year group
   private countByCountry: Record<string, Record<string, number>> = {};
+
+  // Total counts by country
   private totalByCountry: Record<string, number> = {};
+
+  // D3 scales for the chart
   private yScale = d3.scalePoint<string>();
   private xScale = d3.scalePoint<string>();
   private xScaleCollapse = d3.scalePoint<string>();
   private sizeScale = d3.scaleLinear<number, number>();
+
+  // Set of all years in the dataset
   private allYears = new Set<number>();
+
+  // Maximum domain value for the size scale
   private maxDomainValue = 0;
+
+  // Margins for the chart
   private margin = { top: 40, right: 300, bottom: 40, left: 300 };
 
   constructor(private dataSrv: DataProcessingService) {}
 
+  /**
+   * Lifecycle hook that runs after the view is initialized.
+   * Preprocesses the data and initializes the chart.
+   */
   ngAfterViewInit() {
     this.preprocess().then((country) => {
       this.countByCountry = country;
@@ -35,19 +54,30 @@ export class BubbleChartComponent {
     });
   }
 
+  /**
+   * Preprocesses the data by aggregating it by country and year group.
+   * Filters the top countries and groups the rest into "Others".
+   * @returns A promise resolving to the filtered data aggregated by country and year group.
+   */
   private async preprocess(): Promise<Record<string, Record<string, number>>> {
     const data = await this.dataSrv.getData();
     if (!data) return {};
 
+    // Extract years and generate year groups
     this.extractYears(data);
     this.generateYearGroups(6);
 
+    // Aggregate data by country and calculate totals
     const countByCountry = this.aggregateDataByCountry(data);
     this.totalByCountry = this.calculateTotalByCountry(countByCountry);
 
+    // Filter top countries and group the rest into "Others"
     return this.filterTopCountries(countByCountry);
   }
 
+  /**
+   * Initializes the chart by setting up scales, axes, and drawing the data.
+   */
   private initializeChart() {
     this.buildGraph();
     this.setYScale();
@@ -57,6 +87,9 @@ export class BubbleChartComponent {
     this.updateChart();
   }
 
+  /**
+   * Builds the SVG container for the chart.
+   */
   private buildGraph() {
     const containerNode = d3
       .select('#bubble-chart-container')
@@ -74,6 +107,9 @@ export class BubbleChartComponent {
       .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
   }
 
+  /**
+   * Sets the Y-axis scale based on the sorted countries.
+   */
   private setYScale() {
     const containerNode = d3
       .select('#bubble-chart-container')
@@ -86,6 +122,9 @@ export class BubbleChartComponent {
       .range([0, height - this.margin.top - this.margin.bottom]);
   }
 
+  /**
+   * Draws the Y-axis on the chart.
+   */
   private drawYScale() {
     d3.select('svg #graph-g')
       .append('g')
@@ -97,6 +136,9 @@ export class BubbleChartComponent {
       .call(d3.axisLeft(this.yScale));
   }
 
+  /**
+   * Sets the X-axis scales for grouped and collapsed views.
+   */
   private setXScales() {
     const containerNode = d3
       .select('#bubble-chart-container')
@@ -111,6 +153,9 @@ export class BubbleChartComponent {
     this.xScaleCollapse.domain(['Total']).range([0, 0]);
   }
 
+  /**
+   * Draws the X-axis on the chart.
+   */
   private drawXScale() {
     d3.select('.x').remove();
     d3.select('svg #graph-g')
@@ -120,6 +165,9 @@ export class BubbleChartComponent {
       .call(d3.axisTop(this.isTotalShow ? this.xScaleCollapse : this.xScale));
   }
 
+  /**
+   * Updates the chart by redrawing the data and tooltips.
+   */
   private updateChart() {
     this.removeScaleLine();
     this.setMaxDomainValue();
@@ -127,6 +175,9 @@ export class BubbleChartComponent {
     this.addTooltip();
   }
 
+  /**
+   * Draws the data points (bubbles) on the chart.
+   */
   private drawData() {
     d3.selectAll('.country').remove();
 
@@ -174,6 +225,9 @@ export class BubbleChartComponent {
           .style('fill', '#50a1df');
   }
 
+  /**
+   * Adds tooltips to the data points (bubbles).
+   */
   private addTooltip() {
     d3.select('.tooltip').remove();
     const tooltip = d3
@@ -208,6 +262,9 @@ export class BubbleChartComponent {
       });
   }
 
+  /**
+   * Removes unnecessary scale lines and styles the axes.
+   */
   private removeScaleLine() {
     d3.selectAll('.axis path').style('opacity', '0');
     d3.selectAll('.axis text')
@@ -217,16 +274,28 @@ export class BubbleChartComponent {
     d3.selectAll('.tick line').style('visibility', 'hidden');
   }
 
+  /**
+   * Handles the slide toggle event to switch between total and grouped views.
+   * @param event - The slide toggle change event.
+   */
   onSlideToggle(event: MatSlideToggleChange) {
     this.isTotalShow = event.checked;
     this.drawXScale();
     this.updateChart();
   }
 
+  /**
+   * Extracts all unique years from the dataset.
+   * @param data - The dataset to process.
+   */
   private extractYears(data: d3.DSVRowArray<string>) {
     data.forEach((row) => this.allYears.add(Number(row['year'])));
   }
 
+  /**
+   * Generates year groups for the X-axis based on the number of groups.
+   * @param numGroups - The number of year groups to create.
+   */
   private generateYearGroups(numGroups: number) {
     const years = Array.from(this.allYears).sort((a, b) => a - b);
     const groupSize = Math.ceil(years.length / numGroups);
@@ -238,6 +307,11 @@ export class BubbleChartComponent {
     }
   }
 
+  /**
+   * Aggregates the data by country and year group.
+   * @param data - The dataset to process.
+   * @returns The aggregated data by country and year group.
+   */
   private aggregateDataByCountry(data: d3.DSVRowArray<string>) {
     return data.reduce((acc, row) => {
       const yearGroup = this.yearGroups.find((group) => {
@@ -255,6 +329,11 @@ export class BubbleChartComponent {
     }, {} as Record<string, Record<string, number>>);
   }
 
+  /**
+   * Calculates the total counts by country.
+   * @param countByCountry - The data aggregated by country and year group.
+   * @returns The total counts by country.
+   */
   private calculateTotalByCountry(
     countByCountry: Record<string, Record<string, number>>
   ) {
@@ -267,6 +346,11 @@ export class BubbleChartComponent {
     }, {} as Record<string, number>);
   }
 
+  /**
+   * Filters the top 7 countries and groups the rest into "Others".
+   * @param countByCountry - The data aggregated by country and year group.
+   * @returns The filtered data with top countries and "Others".
+   */
   private filterTopCountries(
     countByCountry: Record<string, Record<string, number>>
   ) {
@@ -285,22 +369,29 @@ export class BubbleChartComponent {
 
     this.totalByCountry = Object.fromEntries([
       ...top7,
-      ['Other', others.reduce((sum, [, count]) => sum + count, 0)],
+      ['Others', others.reduce((sum, [, count]) => sum + count, 0)],
     ]);
     return Object.fromEntries([
       ...top7.map(([country]) => [country, countByCountry[country]]),
-      ['Other', othersCount],
+      ['Others', othersCount],
     ]);
   }
 
+  /**
+   * Gets the sorted list of countries, with "Others" always at the end.
+   * @returns The sorted list of countries.
+   */
   private getSortedCountries() {
     return Object.keys(this.countByCountry).sort((a, b) => {
-      if (a === 'Other') return 1;
-      if (b === 'Other') return -1;
+      if (a === 'Others') return 1;
+      if (b === 'Others') return -1;
       return this.totalByCountry[b] - this.totalByCountry[a];
     });
   }
 
+  /**
+   * Sets the maximum domain value for the size scale.
+   */
   private setMaxDomainValue() {
     const values = this.isTotalShow
       ? Object.values(this.totalByCountry)
